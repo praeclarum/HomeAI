@@ -1,0 +1,64 @@
+﻿@page "/"
+@using AI
+
+@inject HomeDatabase db;
+
+<PageTitle>Home</PageTitle>
+
+<h1>Home</h1>
+
+@if (devices == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    @foreach (var device in devices)
+    {
+        <h3>@device.Name</h3>
+        if (deviceStatus.TryGetValue (device.Id, out var s))
+        {
+            <p>@s.Status</p>
+            <p>Current: @s.CurrentTemperature</p>
+            <p>Set: @s.SetTemperature</p>
+        }
+    }
+}
+
+@code {
+    private Device[]? devices;
+    private Dictionary<Guid, DeviceInfo> deviceStatus = new Dictionary<Guid, DeviceInfo>();
+
+    class DeviceInfo {
+        public string Name { get; set; } = "";
+        public string Status { get; set; } = "";
+        public double CurrentTemperature { get; set; } = 0;
+        public double SetTemperature { get; set; } = 0;
+    }
+
+    private string newDeviceName = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+    }
+
+    async Task Refresh()
+    {
+        devices = await db.GetDevicesAsync();
+        StateHasChanged();
+        var ai = new ThermostatAI();
+        foreach (var device in devices)
+        {
+            deviceStatus[device.Id] = new DeviceInfo {
+                Status = await device.GetOnlineDisplayStatusAsync(db),
+                CurrentTemperature =
+                    (await db.GetThermostatReadingAsync(device.Id))?.Value ?? 0.0,
+                SetTemperature = 
+                    await ai.GetSetpointAsync(db, device.Id),
+            };
+            StateHasChanged();
+        }
+    }
+}
+

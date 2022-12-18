@@ -1,0 +1,63 @@
+@page "/events"
+
+@inject HomeDatabase db;
+
+<PageTitle>Events</PageTitle>
+
+<h1>Events</h1>
+
+@if (events == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <button @onclick=Refresh>Refresh</button>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Time (local)</th>
+                <th>Type</th>
+                <th>Value</th>
+                <th>Device</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var e in events)
+            {
+                <tr>
+                    <td>@e.Id</td>
+                    <td>@e.Timestamp.ToLocalTime()</td>
+                    <td>@e.EventType</td>
+                    <td>@e.Value</td>
+                    <td>@(deviceNames.TryGetValue(e.DeviceId, out var n) ? n : "Unknown")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private Dictionary<Guid, string> deviceNames = new Dictionary<Guid, string>();
+    private DataLogEvent[]? events;
+
+    private string newDeviceName = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var devices = await db.GetDevicesAsync();
+        foreach (var d in devices)
+        {
+            deviceNames[d.Id] = d.Name;
+        }
+        await Refresh();
+    }
+
+    async Task Refresh()
+    {
+        events = await db.GetEventsAsync(100);
+        StateHasChanged();
+    }
+}
+

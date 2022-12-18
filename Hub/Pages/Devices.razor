@@ -1,0 +1,73 @@
+@page "/devices"
+
+@inject HomeDatabase db;
+
+<PageTitle>Devices</PageTitle>
+
+<h1>Devices</h1>
+
+@if (devices == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <button @onclick=Refresh>Refresh</button>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Online</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var device in devices)
+            {
+                <tr>
+                    <td>@device.Id</td>
+                    <td>@device.Name</td>
+                    <td>@(deviceStatus.TryGetValue(device.Id, out var s) ? s : "")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <input type="text" @bind="@newDeviceName" />
+    <button @onclick=AddDevice>Add</button>
+}
+
+@code {
+    private Device[]? devices;
+    private Dictionary<Guid, string> deviceStatus = new Dictionary<Guid, string>();
+
+    private string newDeviceName = "";
+
+    private async Task AddDevice()
+    {
+        if (!string.IsNullOrWhiteSpace (newDeviceName)) {
+        var device = new Device {
+            Id = Guid.NewGuid(),
+            Name = newDeviceName.Trim() };
+        await db.AddDeviceAsync(device);
+        devices = await db.GetDevicesAsync();
+        newDeviceName = "";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+    }
+
+    async Task Refresh()
+    {
+        devices = await db.GetDevicesAsync();
+        StateHasChanged();
+        foreach (var device in devices)
+        {
+            deviceStatus[device.Id] = await device.GetOnlineDisplayStatusAsync(db);
+            StateHasChanged();
+        }
+    }
+}
+
