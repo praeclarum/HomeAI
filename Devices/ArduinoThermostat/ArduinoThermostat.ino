@@ -1,5 +1,7 @@
 #include "Api.h"
 
+#define HEATER_HYSTERESIS_CELSIUS 1.0f
+
 #include "DHT.h"
 #define DHTPIN 33
 #define DHTTYPE DHT22
@@ -38,12 +40,21 @@ void loop() {
       Serial.print(targetCelsius);
       Serial.print("C ");
       if (apiPostTargetTemperature(targetCelsius)) {
-        
+        control(currentCelsius, targetCelsius);
       }
     }
   }
 
   delay(30 * 1000);  
+}
+
+void control(float currentCelsius, float targetCelsius)
+{
+  bool heaterOn = (targetCelsius - HEATER_HYSTERESIS_CELSIUS) > currentCelsius;
+  if (apiPostHeaterOn(heaterOn)) {
+    // Actually turn on the relay
+    // digitalWrite(HEATER_RELAY_PIN, heaterOn ? HIGH : LOW);
+  }
 }
 
 void tempSetup() {

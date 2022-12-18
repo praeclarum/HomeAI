@@ -13,4 +13,8 @@ public enum LogEventType {
     /// The last temperature commanded by the AI.
     /// </summary>
     AITemperatureSetting = 2,
+    /// <summary>
+    /// Is the heater active?
+    /// </summary>
+    HeaterOn = 3,
 }
