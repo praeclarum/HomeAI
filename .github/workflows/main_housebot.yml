@@ -17,10 +17,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Set Hub Write Key
-        uses: datamonsters/replace-action
-        with:
-          files: "Core/Secrets.cs"
-          replacements: "HUB_WRITE_KEY=${{ secrets.HUB_WRITE_KEY }}"
+        run: ((Get-Content -path Core\Secrets.cs -Raw) -replace 'HUB_WRITE_KEY','${{ secrets.HUB_WRITE_KEY }}') | Set-Content -Path Core\Secrets.cs
 
       - name: Set up .NET Core
         uses: actions/setup-dotnet@v1
