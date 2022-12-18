@@ -8,7 +8,7 @@ public class HomeDatabase
 
     static readonly Lazy<SQLiteConnectionString> _connectionString =
         new Lazy<SQLiteConnectionString>(() =>
-            new SQLiteConnectionString("Data/Home.db"));
+            new SQLiteConnectionString(Path.Combine(Environment.GetEnvironmentVariable("HOME") ?? "", "Home.db")));
 
     public HomeDatabase()
     {
