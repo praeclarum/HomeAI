@@ -1,4 +1,5 @@
 #include "Api.h"
+#include "Secrets.h"
 
 #include <Arduino.h>
 
@@ -75,7 +76,7 @@ WiFiMulti WiFiMulti;
 void apiSetup() {
 
   WiFi.mode(WIFI_STA);
-  WiFiMulti.addAP("SSID", "PASSWORD");
+  WiFiMulti.addAP(WIFI_NAME, WIFI_PASSWORD);
 
   // wait for WiFi connection
   Serial.print("Waiting for WiFi to connect...");

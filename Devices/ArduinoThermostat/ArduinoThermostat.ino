@@ -19,7 +19,7 @@ void setup() {
 
   tempSetup();
 
-  // apiSetup();
+  apiSetup();
 }
 
 void loop() {
