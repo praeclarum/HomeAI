@@ -26,6 +26,9 @@ public class ApiController : ControllerBase
     [Route("api/events"), HttpPost]
     public async Task<IActionResult> PostEventAsync([FromBody] LogEventRequest dataLogEvent)
     {
+        if (dataLogEvent.Key != Secrets.HubWriteKey) {
+            return Unauthorized();
+        }
         var db = new Data.HomeDatabase();
         var data = new Data.DataLogEvent {
             Timestamp = dataLogEvent.Timestamp,
