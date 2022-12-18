@@ -46,6 +46,7 @@ for (;;) {
                 Timestamp = DateTime.UtcNow,
                 EventType = LogEventType.ThermostatReading,
                 Value = readTemp,
+                Key = Secrets.HubWriteKey,
             });
             Console.WriteLine($"Read temperature {readTemp} C");
             break;
@@ -63,6 +64,7 @@ for (;;) {
                 Timestamp = DateTime.UtcNow,
                 EventType = LogEventType.UserTemperatureSetting,
                 Value = setTemp,
+                Key = Secrets.HubWriteKey,
             });
             Console.WriteLine($"Setting temperature to {setTemp} C");
 

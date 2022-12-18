@@ -20,7 +20,8 @@ else
         {
             <p>@s.Status</p>
             <p>Current: @s.CurrentTemperature</p>
-            <p>Set: @s.SetTemperature</p>
+            <p>Target: @s.SetTemperature</p>
+            <p>Request: @s.LastRequestTemperature @@ @s.LastRequestTemperatureTimestamp.ToLocalTime()</p>
         }
     }
 }
@@ -34,6 +35,8 @@ else
         public string Status { get; set; } = "";
         public double CurrentTemperature { get; set; } = 0;
         public double SetTemperature { get; set; } = 0;
+        public double LastRequestTemperature { get; set; } = 0;
+        public DateTime LastRequestTemperatureTimestamp { get; set; }
     }
 
     private string newDeviceName = "";
@@ -50,12 +53,15 @@ else
         var ai = new ThermostatAI();
         foreach (var device in devices)
         {
+            var lastSetTemp = await db.GetThermostatUserSetpointAsync(device.Id);
             deviceStatus[device.Id] = new DeviceInfo {
                 Status = await device.GetOnlineDisplayStatusAsync(db),
                 CurrentTemperature =
                     (await db.GetThermostatReadingAsync(device.Id))?.Value ?? 0.0,
                 SetTemperature = 
                     await ai.GetSetpointAsync(db, device.Id),
+                LastRequestTemperature = lastSetTemp?.Value ?? 0.0,
+                LastRequestTemperatureTimestamp = lastSetTemp?.Timestamp ?? DateTime.MinValue,
             };
             StateHasChanged();
         }
