@@ -2,6 +2,8 @@
 
 #define HEATER_HYSTERESIS_CELSIUS 1.0f
 
+static bool isHeaterOn = false;
+
 #include "DHT.h"
 #define DHTPIN 33
 #define DHTTYPE DHT22
@@ -50,10 +52,23 @@ void loop() {
 
 void control(float currentCelsius, float targetCelsius)
 {
-  bool heaterOn = (targetCelsius - HEATER_HYSTERESIS_CELSIUS) > currentCelsius;
-  if (apiPostHeaterOn(heaterOn)) {
-    // Actually turn on the relay
-    // digitalWrite(HEATER_RELAY_PIN, heaterOn ? HIGH : LOW);
+  bool heaterShouldBeOn = false;
+  
+  if (isHeaterOn) {
+    // Turn off if current temp greater than setpoint plus hysteresis
+    const auto heaterShouldBeOff = currentCelsius > targetCelsius + HEATER_HYSTERESIS_CELSIUS;
+    heaterShouldBeOn = !heaterShouldBeOff;
+  }
+  else {
+    // Turn on if current temp is less then setpoint minus hysteresis
+    heaterShouldBeOn = currentCelsius < targetCelsius - HEATER_HYSTERESIS_CELSIUS;
+  }
+  if (heaterShouldBeOn != isHeaterOn) {
+    if (apiPostHeaterOn(heaterShouldBeOn)) {
+      isHeaterOn = heaterShouldBeOn;
+      // Actually turn on the relay
+      // digitalWrite(HEATER_RELAY_PIN, heaterOn ? HIGH : LOW);
+    }
   }
 }
 

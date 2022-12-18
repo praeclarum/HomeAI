@@ -20,7 +20,7 @@ public class ThermostatAI
             // If the user set a setpoint, use that.
             return userSetpoint.Value;
         }
-        return 19.123;
+        return 30.0f;
     }
 }
 
