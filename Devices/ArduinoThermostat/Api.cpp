@@ -211,7 +211,7 @@ bool apiPostTargetTemperature(float celsius)
   return apiPostValue(2, celsius);
 }
 
-bool apiPostHeater(bool on)
+bool apiPostHeaterOn(bool on)
 {
-  return apiPostValue(2, on ? 1.0f : 0.0f);
+  return apiPostValue(3, on ? 1.0f : 0.0f);
 }

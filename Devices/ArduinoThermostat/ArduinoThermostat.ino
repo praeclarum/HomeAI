@@ -40,7 +40,7 @@ void loop() {
     if (apiGetTargetTemperature(&targetCelsius)) {
       Serial.print("TARGET ");
       Serial.print(targetCelsius);
-      Serial.print("C ");
+      Serial.println("C ");
       if (apiPostTargetTemperature(targetCelsius)) {
         control(currentCelsius, targetCelsius);
       }
@@ -63,12 +63,10 @@ void control(float currentCelsius, float targetCelsius)
     // Turn on if current temp is less then setpoint minus hysteresis
     heaterShouldBeOn = currentCelsius < targetCelsius - HEATER_HYSTERESIS_CELSIUS;
   }
-  if (heaterShouldBeOn != isHeaterOn) {
-    if (apiPostHeaterOn(heaterShouldBeOn)) {
-      isHeaterOn = heaterShouldBeOn;
-      // Actually turn on the relay
-      // digitalWrite(HEATER_RELAY_PIN, heaterOn ? HIGH : LOW);
-    }
+  if (apiPostHeaterOn(heaterShouldBeOn)) {
+    isHeaterOn = heaterShouldBeOn;
+    // Actually turn on the relay
+    // digitalWrite(HEATER_RELAY_PIN, isHeaterOn ? HIGH : LOW);
   }
 }
 
