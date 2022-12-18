@@ -32,8 +32,13 @@ else
             }
         </tbody>
     </table>
-    <input type="text" @bind="@newDeviceName" />
-    <button @onclick=AddDevice>Add</button>
+    <p>Key: <input type="password" @bind="@writeKey" /></p>
+    if (Secrets.CanWriteWithKey(writeKey))
+    {
+        <input type="text" @bind="@newDeviceName" />
+        <button @onclick=AddDevice>Add</button>
+    }
+    
 }
 
 @code {
@@ -41,6 +46,7 @@ else
     private Dictionary<Guid, string> deviceStatus = new Dictionary<Guid, string>();
 
     private string newDeviceName = "";
+    private string writeKey = "";
 
     private async Task AddDevice()
     {
