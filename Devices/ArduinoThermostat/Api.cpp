@@ -10,6 +10,8 @@
 
 #include <WiFiClientSecure.h>
 
+#include <ArduinoJson.h>
+
 
 // This is GandiStandardSSLCA2.pem, the root Certificate Authority that signed 
 // the server certifcate for the demo server https://jigsaw.w3.org in this
@@ -115,7 +117,47 @@ bool apiGetDevices()
   return false;
 }
 
-bool apiPostTemperature(float celsius)
+bool apiGetTargetTemperature(float *targetCelsius)
+{
+  DynamicJsonDocument doc(1024);
+  *targetCelsius = 0;
+  bool result = false;
+  WiFiClientSecure client;
+  client.setInsecure();
+  HTTPClient https;  
+  String url = "https://housebot.azurewebsites.net/api/thermostatesetpoint/" + String(DEVICE_ID);
+  Serial.printf("[HTTPS] GET %s\n", url.c_str()); 
+  if (https.begin(client, url)) {  // HTTPS
+//    https.addHeader("accept", "application/json");
+    int httpCode = https.GET();
+    if (httpCode > 0) {
+      if (httpCode == HTTP_CODE_OK) {
+        String json = https.getString();
+        Serial.println(json);
+        
+        DeserializationError error = deserializeJson(doc, json);
+        if (!error) {
+          *targetCelsius = doc["setpoint"];
+          Serial.print("SETPOINT: ");
+          Serial.println(*targetCelsius);
+          result = *targetCelsius > 0;
+        }
+        else {
+          Serial.print(F("apiGetTargetTemperature deserializeJson() failed: "));
+          Serial.println(error.c_str());
+        }
+      }
+    } else {
+      Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
+    }
+    https.end();
+  } else {
+    Serial.printf("[HTTPS] Unable to connect\n");
+  }
+  return result;
+}
+
+static bool apiPostValue(int eventType, float value)
 {
   WiFiClientSecure client;//new BearSSL::WiFiClientSecure);
   client.setInsecure();
@@ -137,8 +179,8 @@ bool apiPostTemperature(float celsius)
       "{\"deviceId\":\"" + String(DEVICE_ID) + "\","
       "\"key\":\"" + String(HUB_WRITE_KEY) + "\","
       "\"timestamp\":\"" + timestamp + "\","
-      "\"eventType\":0,"
-      "\"value\":\"" + String(celsius) + "\""
+      "\"eventType\":"+String(eventType)+","
+      "\"value\":\"" + String(value) + "\""
       "}";
     // Serial.println(req);
     int httpCode = https.POST(req);
@@ -157,4 +199,14 @@ bool apiPostTemperature(float celsius)
     Serial.printf("[HTTPS] Unable to connect\n");
   }
   return false;
+}
+
+bool apiPostTemperature(float celsius)
+{
+  return apiPostValue(0, celsius);
+}
+
+bool apiPostTargetTemperature(float celsius)
+{
+  return apiPostValue(2, celsius);
 }

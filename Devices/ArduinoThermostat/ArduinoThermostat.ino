@@ -31,7 +31,17 @@ void loop() {
   Serial.print(currentCelsius * 9.0f / 5.0f + 32.0f);
   Serial.println("F");
 
-  apiPostTemperature(currentCelsius);
+  if (apiPostTemperature(currentCelsius)) {
+    float targetCelsius = 0.0;
+    if (apiGetTargetTemperature(&targetCelsius)) {
+      Serial.print("TARGET ");
+      Serial.print(targetCelsius);
+      Serial.print("C ");
+      if (apiPostTargetTemperature(targetCelsius)) {
+        
+      }
+    }
+  }
 
   delay(30 * 1000);  
 }
