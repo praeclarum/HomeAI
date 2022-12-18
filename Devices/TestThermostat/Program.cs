@@ -16,6 +16,7 @@ for (;;) {
                 Timestamp = DateTime.UtcNow,
                 EventType = LogEventType.AITemperatureSetting,
                 Value = newSetpoint,
+                Key = Secrets.HubWriteKey,
             });
             Console.WriteLine($"Setpoint changed from {oldSetpoint} to {newSetpoint}");
         }
