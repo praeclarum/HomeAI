@@ -17,7 +17,7 @@ else
         <thead>
             <tr>
                 <th>Id</th>
-                <th>Time (local)</th>
+                <th>Time (UTC)</th>
                 <th>Type</th>
                 <th>Value</th>
                 <th>Device</th>
@@ -28,7 +28,7 @@ else
             {
                 <tr>
                     <td>@e.Id</td>
-                    <td>@e.Timestamp.ToLocalTime()</td>
+                    <td>@e.Timestamp</td>
                     <td>@e.EventType</td>
                     <td>@e.Value</td>
                     <td>@(deviceNames.TryGetValue(e.DeviceId, out var n) ? n : e.DeviceId.ToString()[..8])</td>

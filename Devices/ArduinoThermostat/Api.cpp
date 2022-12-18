@@ -10,6 +10,7 @@
 
 #include <WiFiClientSecure.h>
 
+
 // This is GandiStandardSSLCA2.pem, the root Certificate Authority that signed 
 // the server certifcate for the demo server https://jigsaw.w3.org in this
 // example. This certificate is valid until Sep 11 23:59:59 2024 GMT
@@ -71,7 +72,7 @@ void setClock() {
 }
 
 
-WiFiMulti WiFiMulti;
+static WiFiMulti WiFiMulti;
 
 void apiSetup() {
 
@@ -88,52 +89,72 @@ void apiSetup() {
   setClock();  
 }
 
-void apiLoop()
+bool apiGetDevices()
 {
-
+  WiFiClientSecure client;//new BearSSL::WiFiClientSecure);
+  client.setInsecure();
+  HTTPClient https;  
+  String url = "https://housebot.azurewebsites.net/api/devices";
+  Serial.printf("[HTTPS] GET %s\n", url.c_str()); 
+  if (https.begin(client, url)) {  // HTTPS
+//    https.addHeader("accept", "application/json");
+    int httpCode = https.GET();
+    if (httpCode > 0) {
+      if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+        String resp = https.getString();
+        Serial.println(resp);
+        return true;
+      }
+    } else {
+      Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
+    }
+    https.end();
+  } else {
+    Serial.printf("[HTTPS] Unable to connect\n");
+  }
+  return false;
 }
 
 bool apiPostTemperature(float celsius)
 {
-  WiFiClientSecure *client = new WiFiClientSecure();
-  if(client) {
-    client->setCACert(rootCACertificate);
+  WiFiClientSecure client;//new BearSSL::WiFiClientSecure);
+  client.setInsecure();
+  HTTPClient https;  
+  String url = "https://housebot.azurewebsites.net/api/events";
+  Serial.printf("[HTTPS] POST %s\n", url.c_str()); 
+  if (https.begin(client, url)) {  // HTTPS
+    https.addHeader("accept", "application/json");
+    https.addHeader("content-type", "application/json");
+    struct tm timeinfo;
+    time_t nowSecs = time(nullptr);
+    gmtime_r(&nowSecs, &timeinfo);
+    // Get an RFC formatted time string
+    char buffer[256];
+    strftime(buffer, 256, "%FT%TZ", &timeinfo);
+    String timestamp = String(buffer);
 
-    {
-      // Add a scoping block for HTTPClient https to make sure it is destroyed before WiFiClientSecure *client is 
-      HTTPClient https;
-  
-      Serial.print("[HTTPS] begin...\n");
-      if (https.begin(*client, "https://jigsaw.w3.org/HTTP/connection.html")) {  // HTTPS
-        Serial.print("[HTTPS] GET...\n");
-        // start connection and send HTTP header
-        int httpCode = https.GET();
-  
-        // httpCode will be negative on error
-        if (httpCode > 0) {
-          // HTTP header has been send and Server response header has been handled
-          Serial.printf("[HTTPS] GET... code: %d\n", httpCode);
-  
-          // file found at server
-          if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
-            String payload = https.getString();
-            Serial.println(payload);
-          }
-        } else {
-          Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
-        }
-  
-        https.end();
-      } else {
-        Serial.printf("[HTTPS] Unable to connect\n");
+    String req =
+      "{\"deviceId\":\"" + String(DEVICE_ID) + "\","
+      "\"key\":\"" + String(HUB_WRITE_KEY) + "\","
+      "\"timestamp\":\"" + timestamp + "\","
+      "\"eventType\":0,"
+      "\"value\":\"" + String(celsius) + "\""
+      "}";
+    // Serial.println(req);
+    int httpCode = https.POST(req);
+    Serial.println("STATUS CODE: " + String(httpCode));
+    if (httpCode > 0) {
+      if (httpCode == HTTP_CODE_OK) {
+        String resp = https.getString();
+        Serial.println(resp);
+        return true;
       }
-
-      // End extra scoping block
+    } else {
+      Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
     }
-  
-    delete client;
+    https.end();
   } else {
-    Serial.println("Unable to create client");
+    Serial.printf("[HTTPS] Unable to connect\n");
   }
-
+  return false;
 }

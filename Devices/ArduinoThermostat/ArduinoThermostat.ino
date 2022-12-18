@@ -24,16 +24,16 @@ void setup() {
 
 void loop() {
   
-  // apiLoop();
-
   float currentCelsius = tempRead();
-  // apiPostTemperature(currentCelsius);
   Serial.print("READ ");
   Serial.print(currentCelsius);
   Serial.print("C ");
   Serial.print(currentCelsius * 9.0f / 5.0f + 32.0f);
   Serial.println("F");
-  delay(1000);  
+
+  apiPostTemperature(currentCelsius);
+
+  delay(30 * 1000);  
 }
 
 void tempSetup() {

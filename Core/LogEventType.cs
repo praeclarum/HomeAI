@@ -4,13 +4,13 @@ public enum LogEventType {
     /// <summary>
     /// The current temperature from the thermostat in Celsius.
     /// </summary>
-    ThermostatReading,
+    ThermostatReading = 0,
     /// <summary>
     /// The last temperature that the user set.
     /// </summary>
-    UserTemperatureSetting,
+    UserTemperatureSetting = 1,
     /// <summary>
     /// The last temperature commanded by the AI.
     /// </summary>
-    AITemperatureSetting,
+    AITemperatureSetting = 2,
 }
