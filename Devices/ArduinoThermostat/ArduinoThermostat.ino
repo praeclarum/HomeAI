@@ -47,7 +47,7 @@ void loop() {
     }
   }
 
-  delay(30 * 1000);  
+  delay(5 * 60 * 1000);
 }
 
 void control(float currentCelsius, float targetCelsius)
