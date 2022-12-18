@@ -71,5 +71,16 @@ public class HomeDatabase
             .ConfigureAwait(false);
         return e;
     }
+
+    public async Task<DataLogEvent[]> GetThermostatReadingsAsync(DeviceId id, int max)
+    {
+        var e = await _database.Table<DataLogEvent>()
+            .Where(x => x.DeviceId == id && x.EventType == LogEventType.ThermostatReading)
+            .OrderByDescending(x => x.Timestamp)
+            .Take(max)
+            .ToArrayAsync()
+            .ConfigureAwait(false);
+        return e;
+    }
 }
 

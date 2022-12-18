@@ -22,9 +22,7 @@ else
             <p>Current: @s.CurrentTemperature.CelsiusToFahrenheit() ℉ (@s.CurrentTemperature ℃)</p>
             <p>Target: @s.SetTemperature.CelsiusToFahrenheit() ℉ (@s.SetTemperature ℃)</p>
             <p>Request: @s.LastRequestTemperature.CelsiusToFahrenheit() ℉ (@s.LastRequestTemperature ℃) @@ @s.LastRequestTemperatureTimestamp.ToLocalTime()</p>
-            <svg width="200" height="200" viewBox="0 0 200 200">
-                <circle cx="100" cy="100" r="70" fill="#D149FB" />
-            </svg>
+            <StripChart Width="600" Height="200" Data="@s.TempReadings" XLabel="Time (minutes)" YLabel="Temperature (℉)" />
         }
     }
 }
@@ -40,6 +38,7 @@ else
         public double SetTemperature { get; set; } = 0;
         public double LastRequestTemperature { get; set; } = 0;
         public DateTime LastRequestTemperatureTimestamp { get; set; }
+        public (float X, float Y)[] TempReadings { get; set; } = Array.Empty<(float X, float Y)>();
     }
 
     private string newDeviceName = "";
@@ -57,6 +56,7 @@ else
         foreach (var device in devices)
         {
             var lastSetTemp = await db.GetThermostatUserSetpointAsync(device.Id);
+            var now = DateTime.UtcNow;
             deviceStatus[device.Id] = new DeviceInfo {
                 Status = await device.GetOnlineDisplayStatusAsync(db),
                 CurrentTemperature =
@@ -65,6 +65,9 @@ else
                     await ai.GetSetpointAsync(db, device.Id),
                 LastRequestTemperature = lastSetTemp?.Value ?? 0.0,
                 LastRequestTemperatureTimestamp = lastSetTemp?.Timestamp ?? DateTime.MinValue,
+                TempReadings = (await db.GetThermostatReadingsAsync(device.Id, 100))
+                    .Select(r => (X: (float)(r.Timestamp - now).TotalMinutes, Y: (float)r.Value.CelsiusToFahrenheit()))
+                    .ToArray(),
             };
             StateHasChanged();
         }

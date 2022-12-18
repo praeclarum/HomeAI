@@ -1,0 +1,67 @@
+<svg width="@Width" height="@Height" viewBox="0 0 @Width @Height">
+    <!-- Draw the backround
+    <rect x="@padding" y="0" width="@Width" height="@(Height-padding)" fill="#EEE" />
+     -->
+    <!-- Draw the x-axis -->
+    <line x1="@padding" y1="@(Height-padding)" x2="@Width" y2="@(Height-padding)" stroke="@axisColor" stroke-width="@axisWidth" />
+    <text x="@((Width-padding)/2 + padding)" y="@(Height-textSize)" text-anchor="middle" font-size="@textSize" font-family="sans-serif" fill="black">@XLabel</text>
+    <!-- Draw the y-axis -->
+    <line x1="@padding" y1="0" x2="@padding" y2="@(Height-padding)" stroke="@axisColor" stroke-width="@axisWidth" />
+    <text x="@padding" y="@((Height-padding)/2)" text-anchor="middle" font-size="@textSize" font-family="sans-serif" fill="black" transform="translate(-@(textSize/3), 0) rotate(-90 @padding @((Height-padding)/2))">@YLabel</text>
+    <!-- Draw the data -->
+    <polyline points="@pointsSvg" fill="none" stroke="@lineColor" stroke-width="@lineWidth" />
+    <!-- Draw the data as points -->
+    @foreach (var point in Data)
+    {
+        var (x, y) = Project(point);
+        <circle cx="@x" cy="@y" r="@(lineWidth*1.5)" fill="@pointColor"><title>@point</title></circle>
+    }
+</svg>
+
+@code {
+    [Parameter] public int Width { get; set; }
+    [Parameter] public int Height { get; set; }
+    [Parameter] public string XLabel { get; set; } = "X";
+    [Parameter] public string YLabel { get; set; } = "Y";
+    [Parameter] public (float X, float Y)[] Data { get; set; } = Array.Empty<(float X, float Y)>();
+
+    int axisWidth;
+    int lineWidth;
+    int padding = 32;
+    int textSize = 16;
+
+    string axisColor = "#999";
+    string lineColor = "black";
+    string pointColor = "blue";
+
+    string pointsSvg = "";
+
+    float minX, minY;
+    float dxdw, dydh;
+    int iheight;
+
+    (float, float) Project((float X, float Y) p) =>
+        (padding + (p.X - minX) / dxdw, iheight - (p.Y - minY) / dydh);
+ 
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        
+        var iwidth = Width - padding;
+        iheight = Height - padding;
+
+        axisWidth = Math.Min(Width, Height) / 50;
+        lineWidth = axisWidth;
+
+        if (Data.Length == 0)
+            return;
+        minX = Data.Min(d => d.X);
+        var maxX = Data.Max(d => d.X);
+        minY = Data.Min(d => d.Y);
+        var maxY = Data.Max(d => d.Y);
+        dxdw = (maxX - minX) / iwidth;
+        dydh = (maxY - minY) / iheight;
+        var points = Data.Select(Project).Select(p => $"{p.Item1},{p.Item2}");
+        pointsSvg = String.Join(" ", points);
+    }
+}
