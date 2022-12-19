@@ -31,16 +31,6 @@ else
     private Device[]? devices;
     private Dictionary<Guid, DeviceInfo> deviceStatus = new Dictionary<Guid, DeviceInfo>();
 
-    class DeviceInfo {
-        public string Name { get; set; } = "";
-        public string Status { get; set; } = "";
-        public double CurrentTemperature { get; set; } = 0;
-        public double SetTemperature { get; set; } = 0;
-        public double LastRequestTemperature { get; set; } = 0;
-        public DateTime LastRequestTemperatureTimestamp { get; set; }
-        public (float X, float Y)[] TempReadings { get; set; } = Array.Empty<(float X, float Y)>();
-    }
-
     private string newDeviceName = "";
 
     protected override async Task OnInitializedAsync()
@@ -57,7 +47,8 @@ else
         {
             var lastSetTemp = await db.GetThermostatUserSetpointAsync(device.Id);
             var now = DateTime.UtcNow;
-            deviceStatus[device.Id] = new DeviceInfo {
+            var states = await DeviceStatesOverTime.LoadAsync(device.Id, 24*60, db);
+            deviceStatus[device.Id] = new DeviceInfo(device.Id) {
                 Status = await device.GetOnlineDisplayStatusAsync(db),
                 CurrentTemperature =
                     (await db.GetThermostatReadingAsync(device.Id))?.Value ?? 0.0,
@@ -65,9 +56,11 @@ else
                     await ai.GetSetpointAsync(db, device.Id),
                 LastRequestTemperature = lastSetTemp?.Value ?? 0.0,
                 LastRequestTemperatureTimestamp = lastSetTemp?.Timestamp ?? DateTime.MinValue,
-                TempReadings = (await db.GetThermostatReadingsAsync(device.Id, 100))
-                    .Select(r => (X: (float)(r.Timestamp - now).TotalMinutes, Y: (float)r.Value.CelsiusToFahrenheit()))
-                    .ToArray(),
+                TempReadings = states.States.Select(s => (
+                    (now - s.Timestamp).TotalMinutes,
+                    s.ThermostatReading.CelsiusToFahrenheit()
+                )).ToArray(),
+                States = states,
             };
             StateHasChanged();
         }

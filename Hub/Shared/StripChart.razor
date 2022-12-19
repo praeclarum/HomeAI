@@ -23,7 +23,7 @@
     [Parameter] public int Height { get; set; }
     [Parameter] public string XLabel { get; set; } = "X";
     [Parameter] public string YLabel { get; set; } = "Y";
-    [Parameter] public (float X, float Y)[] Data { get; set; } = Array.Empty<(float X, float Y)>();
+    [Parameter] public (double X, double Y)[] Data { get; set; } = Array.Empty<(double X, double Y)>();
 
     int axisWidth;
     int lineWidth;
@@ -36,11 +36,11 @@
 
     string pointsSvg = "";
 
-    float minX, minY;
-    float dxdw, dydh;
+    double minX, minY;
+    double dxdw, dydh;
     int iheight;
 
-    (float, float) Project((float X, float Y) p) =>
+    (double, double) Project((double X, double Y) p) =>
         (padding + (p.X - minX) / dxdw, iheight - (p.Y - minY) / dydh);
  
     protected override void OnInitialized()

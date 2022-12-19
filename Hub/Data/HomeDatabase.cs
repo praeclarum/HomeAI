@@ -82,5 +82,13 @@ public class HomeDatabase
             .ConfigureAwait(false);
         return e;
     }
+
+    public Task<DataLogEvent[]> GetEventsAsync(DeviceId id, DateTime start, DateTime end)
+    {
+        return _database.Table<DataLogEvent>()
+            .Where(x => x.DeviceId == id && x.Timestamp >= start && x.Timestamp <= end)
+            .OrderBy(x => x.Timestamp)
+            .ToArrayAsync();
+    }
 }
 
