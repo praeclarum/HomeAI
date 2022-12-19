@@ -51,8 +51,8 @@ else
             var minTime = states.Length > 0 ? states[0].Timestamp : now;
             deviceStatus[device.Id] = new DeviceInfo(device.Id) {
                 Status = await device.GetOnlineDisplayStatusAsync(db),
-                CurrentTemperature = states.Length > 0 ? states[0].ThermostatReading : 0.0,
-                SetTemperature = states.Length > 0 ? states[0].AISetTemperature : 0.0,
+                CurrentTemperature = states.Length > 0 ? states[^1].ThermostatReading : 0.0,
+                SetTemperature = states.Length > 0 ? states[^1].AISetTemperature : 0.0,
                 LastRequestTemperature = lastSetTemp?.Value ?? 0.0,
                 LastRequestTemperatureTimestamp = lastSetTemp?.Timestamp ?? DateTime.MinValue,
                 TempReadingsF = states.Select(s => (
