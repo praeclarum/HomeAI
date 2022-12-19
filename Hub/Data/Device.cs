@@ -39,10 +39,10 @@ public class DeviceState
     public DateTime Timestamp { get; set; }
     public double ThermostatReading { get; set; }
     public double AISetTemperature { get; set; }
-    public double UserSetTemperature { get; set; }
+    // public double UserSetTemperature { get; set; }
     public bool HeaterOn { get; set; }
 
-    public bool HasAllData => ThermostatReading > 0.1 && AISetTemperature > 0.1 && UserSetTemperature > 0.1;
+    public bool HasAllData => ThermostatReading > 0.1 && AISetTemperature > 0.1;// && UserSetTemperature > 0.1;
 }
 
 
@@ -92,7 +92,7 @@ public class DeviceStatesOverTime
                 Timestamp = e.Timestamp,
                 ThermostatReading = temperature,
                 AISetTemperature = aiSetpoint,
-                UserSetTemperature = userSetpoint,
+                // UserSetTemperature = userSetpoint,
                 HeaterOn = heaterOn
             });
         }
