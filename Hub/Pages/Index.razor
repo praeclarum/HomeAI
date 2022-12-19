@@ -22,7 +22,7 @@ else
             <p>Current: @s.CurrentTemperature.CelsiusToFahrenheit() ℉ (@s.CurrentTemperature ℃)</p>
             <p>Target: @s.SetTemperature.CelsiusToFahrenheit() ℉ (@s.SetTemperature ℃)</p>
             <p>Request: @s.LastRequestTemperature.CelsiusToFahrenheit() ℉ (@s.LastRequestTemperature ℃) @@ @s.LastRequestTemperatureTimestamp.ToLocalTime()</p>
-            <StripChart Width="600" Height="200" Data="@s.TempReadings" XLabel="Time (minutes)" YLabel="Temperature (℉)" />
+            <StripChart Width="600" Height="200" Data="@(new[]{s.AISetTemperaturesF, s.TempReadingsF})" XLabel="Time (minutes)" YLabel="Temperature (℉)" />
         }
     }
 }
@@ -47,18 +47,21 @@ else
         {
             var lastSetTemp = await db.GetThermostatUserSetpointAsync(device.Id);
             var now = DateTime.UtcNow;
-            var states = await DeviceStatesOverTime.LoadAsync(device.Id, 24*60, db);
+            var states = (await DeviceStatesOverTime.LoadAsync(device.Id, 24*60, db)).States.Where(s => s.HasAllData).ToArray();
+            var minTime = states.Length > 0 ? states[0].Timestamp : now;
             deviceStatus[device.Id] = new DeviceInfo(device.Id) {
                 Status = await device.GetOnlineDisplayStatusAsync(db),
-                CurrentTemperature =
-                    (await db.GetThermostatReadingAsync(device.Id))?.Value ?? 0.0,
-                SetTemperature = 
-                    await ai.GetSetpointAsync(db, device.Id),
+                CurrentTemperature = states.Length > 0 ? states[0].ThermostatReading : 0.0,
+                SetTemperature = states.Length > 0 ? states[0].AISetTemperature : 0.0,
                 LastRequestTemperature = lastSetTemp?.Value ?? 0.0,
                 LastRequestTemperatureTimestamp = lastSetTemp?.Timestamp ?? DateTime.MinValue,
-                TempReadings = states.States.Select(s => (
-                    (now - s.Timestamp).TotalMinutes,
+                TempReadingsF = states.Select(s => (
+                    (s.Timestamp - minTime).TotalMinutes,
                     s.ThermostatReading.CelsiusToFahrenheit()
+                )).ToArray(),
+                AISetTemperaturesF = states.Select(s => (
+                    (s.Timestamp - minTime).TotalMinutes,
+                    s.AISetTemperature.CelsiusToFahrenheit()
                 )).ToArray(),
                 States = states,
             };

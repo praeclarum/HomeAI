@@ -108,12 +108,11 @@ class DeviceInfo {
     public double SetTemperature { get; set; } = 0;
     public double LastRequestTemperature { get; set; } = 0;
     public DateTime LastRequestTemperatureTimestamp { get; set; }
-    public (double X, double Y)[] TempReadings { get; set; } = Array.Empty<(double X, double Y)>();
-    public (double X, double Y)[] AITempReadings { get; set; } = Array.Empty<(double X, double Y)>();
-    public (double X, double Y)[] UserTempReadings { get; set; } = Array.Empty<(double X, double Y)>();
-    public DeviceStatesOverTime States { get; set; }
+    public (double X, double Y)[] TempReadingsF { get; set; } = Array.Empty<(double X, double Y)>();
+    public (double X, double Y)[] AISetTemperaturesF { get; set; } = Array.Empty<(double X, double Y)>();
+    public (double X, double Y)[] UserTempReadingsF { get; set; } = Array.Empty<(double X, double Y)>();
+    public DeviceState[] States { get; set; } = Array.Empty<DeviceState>();
     public DeviceInfo(Guid deviceId) {
         Id = deviceId;
-        States = new DeviceStatesOverTime(deviceId, Array.Empty<DeviceState>());
     }
 }
