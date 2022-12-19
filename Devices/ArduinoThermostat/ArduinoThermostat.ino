@@ -3,6 +3,9 @@
 #define HEATER_HYSTERESIS_CELSIUS 1.0f
 
 static bool isHeaterOn = false;
+static unsigned long lastReadMillis = 0;
+static float lastTargetCelsius = 0;
+static float lastCelsius = 0;
 
 #include <TM1637Display.h>
 #define DISPLAY_CLK_PIN 32
@@ -35,20 +38,16 @@ void setup() {
 
 }
 
-static unsigned long lastReadMillis = 0;
-static float lastTargetCelsius = 0;
-
 void loop() {
 
   const auto nowMillis = millis();
 
   const bool shouldRead = lastReadMillis == 0 || ((nowMillis - lastReadMillis) > 5 * 60 * 1000);
 
-  float currentCelsius = tempRead();
+  const float currentCelsius = tempRead();
+  lastCelsius = currentCelsius;
   
   if (shouldRead) {
-    lastReadMillis = nowMillis;
-    
     Serial.print("READ ");
     Serial.print(currentCelsius);
     Serial.print("C ");
@@ -67,14 +66,30 @@ void loop() {
         }
       }
     }
+
+    lastReadMillis = millis();
   }
 
-  const auto currentF = int(currentCelsius*9.0f/5.0f + 32.0f + 0.5f);
-  const auto targetF = int(lastTargetCelsius*9.0f/5.0f + 32.0f + 0.5f);
+  updateDisplay();
 
-  tm.showNumberDecEx(currentF, 0b01000000, true, 2, 0);
-  tm.showNumberDecEx(targetF, 0b01000000, true, 2, 2);
-  delay(1000);
+  delay(100);
+}
+
+void updateDisplay()
+{
+  const auto currentF = int(lastCelsius*9.0f/5.0f + 32.0f + 0.5f);
+  const auto targetF = int(lastTargetCelsius*9.0f/5.0f + 32.0f + 0.5f);
+  const bool showTarget = isHeaterOn;
+  const uint8_t dots = showTarget ? 0b01000000 : 0;
+
+  tm.showNumberDecEx(currentF, dots, true, 2, 2);
+  if (showTarget) {
+    tm.showNumberDecEx(targetF, dots, true, 2, 0);
+  }
+  else {
+    const uint8_t segments[2] = { 0, 0 };
+    tm.setSegments(segments, 2, 0);
+  } 
 }
 
 void control(float currentCelsius, float targetCelsius)

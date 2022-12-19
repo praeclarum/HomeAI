@@ -180,7 +180,7 @@ static bool apiPostValue(int eventType, float value)
       "\"key\":\"" + String(HUB_WRITE_KEY) + "\","
       "\"timestamp\":\"" + timestamp + "\","
       "\"eventType\":"+String(eventType)+","
-      "\"value\":\"" + String(value) + "\""
+      "\"value\":\"" + String(value, 4) + "\""
       "}";
     // Serial.println(req);
     int httpCode = https.POST(req);
