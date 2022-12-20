@@ -11,6 +11,10 @@ static unsigned long lastReadMillis = 0;
 static float lastTargetCelsius = 0;
 static float lastCelsius = 0;
 
+static bool manuallySetTemp = false;
+static float manuallySetTempC = 0.0f;
+static unsigned long manuallySetTempMillis = 0;
+
 void setup() {
 
   Serial.begin(115200);
@@ -32,7 +36,7 @@ void loop() {
 
   const float currentCelsius = thermometerReadCelsius();
   lastCelsius = currentCelsius;
-  
+
   if (shouldRead) {
     Serial.print("READ ");
     Serial.print(currentCelsius);
@@ -48,6 +52,7 @@ void loop() {
         Serial.print(targetCelsius);
         Serial.println("C ");
         if (apiPostTargetTemperature(targetCelsius)) {
+          knobSetFahrenheit(targetCelsius * 9.0f/5.0f + 32.0f);
           control(currentCelsius, targetCelsius);
         }
       }
@@ -56,7 +61,36 @@ void loop() {
     lastReadMillis = millis();
   }
 
-  displayUpdate(currentCelsius, lastTargetCelsius, isHeaterOn);
+  if (knobChanged()) {
+    const auto targetFahrenheit = knobReadFahrenheit();
+    const auto targetCelsius = (targetFahrenheit - 32.0f) * 5.0f / 9.0f;
+    if (manuallySetTemp || fabs(targetCelsius - lastTargetCelsius) >= 5.0f/9.0f/2.0f) {
+      Serial.print("KNOB ");
+      Serial.print(targetFahrenheit);
+      Serial.print("F (");
+      Serial.print(targetCelsius);
+      Serial.println("C)");
+      manuallySetTemp = true;
+      manuallySetTempC = targetCelsius;
+      manuallySetTempMillis = millis();
+      displayUpdate(currentCelsius, manuallySetTempC, true);
+    }
+  }
+
+  if (manuallySetTemp && (millis() - manuallySetTempMillis) > 3 * 1000) {
+    Serial.print("Committing manual setpoint: ");
+    Serial.print(manuallySetTempC);
+    Serial.println("C");
+    manuallySetTemp = false;
+    lastTargetCelsius = manuallySetTempC;
+    if (apiPostManualTemperature(manuallySetTempC)) {
+      if (apiPostTargetTemperature(manuallySetTempC)) {
+        control(currentCelsius, manuallySetTempC);
+      }
+    }
+  }
+
+  displayUpdate(currentCelsius, manuallySetTemp ? manuallySetTempC : lastTargetCelsius, manuallySetTemp || isHeaterOn);
 
   delay(100);
 }

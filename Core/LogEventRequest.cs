@@ -11,5 +11,5 @@ public class LogEventRequest
     public DeviceId DeviceId { get; set; }
     public LogEventType EventType { get; set; }
     public double Value { get; set; }
-    public string Key { get; set; }
+    public string Key { get; set; } = "";
 }

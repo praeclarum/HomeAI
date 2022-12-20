@@ -206,6 +206,11 @@ bool apiPostTemperature(float celsius)
   return apiPostValue(0, celsius);
 }
 
+bool apiPostManualTemperature(float celsius)
+{
+  return apiPostValue(1, celsius);
+}
+
 bool apiPostTargetTemperature(float celsius)
 {
   return apiPostValue(2, celsius);

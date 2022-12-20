@@ -223,6 +223,7 @@
                 "/Users/fak/Dropbox/Projects/Arduino/libraries/VescUart/src",
                 "/Users/fak/Dropbox/Projects/Arduino/libraries/TinyMPU6050/src",
                 "/Users/fak/Dropbox/Projects/Arduino/libraries/Ai_Esp32_Rotary_Encoder/src",
+                "/Users/fak/Dropbox/Projects/Arduino/libraries/ArduinoJson/src",
                 "/Users/fak/Dropbox/Projects/Arduino/libraries/TM1637",
                 "/Users/fak/Dropbox/Projects/Arduino/libraries/DHT_sensor_library",
                 "/Users/fak/Library/Arduino15/packages/esp32/hardware/esp32/2.0.4/libraries/Wire/src",

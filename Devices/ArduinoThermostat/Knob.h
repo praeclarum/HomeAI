@@ -1,7 +1,7 @@
 #pragma once
 
 void knobSetup();
-void knobLoop();
 
 bool knobChanged();
-long knobRead();
+long knobReadFahrenheit();
+void knobSetFahrenheit(float fahrenheit);

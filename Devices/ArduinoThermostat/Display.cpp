@@ -9,11 +9,10 @@ void displaySetup() {
   tm.showNumberDec(0);
 }
 
-void displayUpdate(float currentC, float targetC, bool heaterOn)
+void displayUpdate(float currentC, float targetC, bool showTarget)
 {
   const auto currentF = int(currentC*9.0f/5.0f + 32.0f + 0.5f);
   const auto targetF = int(targetC*9.0f/5.0f + 32.0f + 0.5f);
-  const bool showTarget = heaterOn;
   const uint8_t dots = showTarget ? 0b01000000 : 0;
 
   tm.showNumberDecEx(currentF, dots, true, 2, 2);
