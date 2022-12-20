@@ -6,6 +6,8 @@ using Hub.Data;
 
 public class ThermostatAI
 {
+    public const double DefaultTemperature = 23.0;
+
     static readonly TimeSpan SetpointDuration = TimeSpan.FromMinutes(1);
     /// <summary>
     /// Gets the setpoint for the thermostat in Celsius.
@@ -20,7 +22,7 @@ public class ThermostatAI
             // If the user set a setpoint, use that.
             return userSetpoint.Value;
         }
-        return 25.0f;
+        return DefaultTemperature;
     }
 }
 

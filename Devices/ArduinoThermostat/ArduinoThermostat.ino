@@ -1,6 +1,6 @@
 #include "Api.h"
 
-#define HEATER_HYSTERESIS_CELSIUS 1.0f
+#define HEATER_HYSTERESIS_CELSIUS (1.0f * 5.0f/9.0f)
 
 static bool isHeaterOn = false;
 static unsigned long lastReadMillis = 0;
