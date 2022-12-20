@@ -8,7 +8,8 @@ public class ThermostatAI
 {
     public const double DefaultTemperature = 23.0;
 
-    static readonly TimeSpan SetpointDuration = TimeSpan.FromMinutes(1);
+    static readonly TimeSpan SetpointDuration = TimeSpan.FromHours(1.0);
+
     /// <summary>
     /// Gets the setpoint for the thermostat in Celsius.
     /// </summary>
