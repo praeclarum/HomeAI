@@ -1,0 +1,84 @@
+// 
+board_thickness = 1.6;
+BackPlate();
+module Standoffs(standoff_height=10, hole_diam=3, dx=20, dy=60, show_board=true) {
+    for (i = [0:2]) {
+        for (j = [0:2]) {
+            difference() {
+                translate([-dx / 2 + i * dx, -dy / 2 + j * dy, standoff_height / 2])
+                _m_material(c=[0.799997, 0.800021, 0.800007, 1], r=0.5, m=0)
+                cylinder(h=standoff_height, r1=hole_diam / 2 * 2, r2=hole_diam / 2 * 2, center=true, $fa=5, $fs=0.5);
+                translate([-dx / 2 + i * dx, -dy / 2 + j * dy, 0])
+                cylinder(h=100, r1=hole_diam / 2, r2=hole_diam / 2, center=true, $fa=5, $fs=0.5);
+            }
+        }
+    }
+    if (show_board) {
+        difference() {
+            translate([0, 0, board_thickness / 2 + standoff_height])
+            _m_material(c=[0.298038, 0.298047, 0.298042, 1], r=0.5, m=0)
+            cube(size=[dx + hole_diam * 2, dy + hole_diam * 2, board_thickness], center=true);
+            for (i = [0:2]) {
+                for (j = [0:2]) {
+                    translate([-dx / 2 + i * dx, -dy / 2 + j * dy, 0])
+                    cylinder(h=100, r1=hole_diam / 2, r2=hole_diam / 2, center=true, $fa=5, $fs=0.5);
+                }
+            }
+        }
+    }
+}
+module ESP32(show_board=false) {
+    Standoffs(dx=23, dy=46, show_board=show_board);
+}
+module TM1637(show_board=true, standoff_height=10) {
+    if (show_board) {
+        translate([0, 0, standoff_height + board_thickness + 8 / 2])
+        _m_material(c=[0, 0, 0, 1], r=0.1, m=0)
+        cube(size=[19, 50, 8], center=true);
+    }
+    Standoffs(dx=21, dy=60, show_board=show_board, standoff_height=standoff_height);
+}
+module BackPlate(thickness=3, show_boards=true) {
+    translate([-32.983573, 0, -0])
+    Relay();
+    translate([31.030136, 0, -0])
+    DHT22();
+    RotaryEncoder(show_board=show_boards);
+    translate([0, 0, -thickness / 2 + 0.1])
+    _m_material(c=[0.599998, 0.600015, 0.600005, 1], r=0.5, m=0)
+    cube(size=[100, 110, thickness], center=true);
+    translate([0, 40, 0])
+    rotate([0, 0, 90])
+    TM1637(show_board=show_boards);
+    translate([0, -40, 0])
+    ESP32(show_board=show_boards);
+}
+module RotaryEncoder(show_board=true, standoff_height=10) {
+    if (show_board) {
+        translate([0, 3, standoff_height + board_thickness + 8 + 10])
+        _m_material(c=[0.599998, 0.600015, 0.600005, 1], r=0.05, m=0)
+        cylinder(h=20, r1=6.7 / 2, r2=6.7 / 2, center=true, $fa=5, $fs=0.5);
+    }
+    if (show_board) {
+        translate([0, 3, standoff_height + board_thickness + 8 / 2])
+        _m_material(c=[0.599998, 0.600015, 0.600005, 1], r=0.1, m=0)
+        cube(size=[12, 12, 8], center=true);
+    }
+    Standoffs(dx=18, dy=17, show_board=show_board, standoff_height=standoff_height);
+}
+module DHT22(show_board=true, standoff_height=10) {
+    if (show_board) {
+        translate([0, 0, standoff_height + board_thickness + 8 / 2])
+        _m_material(c=[0.999995, 1, 1, 1], r=0.8, m=0)
+        cube(size=[12, 12, 8], center=true);
+    }
+    Standoffs(dx=18, dy=17, show_board=show_board, standoff_height=standoff_height);
+}
+module Relay(show_board=true, standoff_height=10) {
+    if (show_board) {
+        translate([0, 0, standoff_height + board_thickness + 8 / 2])
+        _m_material(c=[0.059472, 0.501943, 0.998465, 1], r=0.8, m=0)
+        cube(size=[12, 12, 8], center=true);
+    }
+    Standoffs(dx=18, dy=17, show_board=show_board, standoff_height=standoff_height);
+}
