@@ -90,5 +90,17 @@ public class HomeDatabase
             .OrderBy(x => x.Timestamp)
             .ToArrayAsync();
     }
+
+    public async Task<byte[]> GetBackupAsync()
+    {
+        var tempPath = Path.GetTempFileName();
+        try {
+            await _database.BackupAsync(tempPath).ConfigureAwait(false);
+            return await File.ReadAllBytesAsync(tempPath).ConfigureAwait(false);
+        }
+        finally {
+            File.Delete(tempPath);
+        }
+    }
 }
 
