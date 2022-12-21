@@ -9,8 +9,6 @@ using Microsoft.ML.Trainers.FastTree;
 
 public class ThermostatAI
 {
-    public const double DefaultTemperature = 23.0;
-
     static readonly TimeSpan SetpointDuration = TimeSpan.FromHours(1.0);
 
     /// <summary>
@@ -27,7 +25,7 @@ public class ThermostatAI
             return userSetpoint.Value;
         }
         var prediction = await PredictAsync(db, id);
-        Console.WriteLine($"Predicted temperature: {prediction.TargetCelsius}");
+        // Console.WriteLine($"Predicted temperature: {prediction.TargetCelsius}");
         return prediction.TargetCelsius;
     }
 
@@ -41,13 +39,24 @@ public class ThermostatAI
 
         // Console.WriteLine($"Training on {states.States.Length} data points.");
 
+        // Load the training data
         var dataQ =
             from s in states.States
             select new ThermostatData (s.Timestamp, (float)s.AISetTemperature);
         var data = dataQ.ToArray();
+        if (data.Length == 0)
+        {
+            return new ThermostatPrediction { TargetCelsius = (float)67.0.FahrenheitToCelsius() };
+        }
+        else if (data.Length == 1)
+        {
+            return new ThermostatPrediction { TargetCelsius = data[0].TargetCelsius };
+        }
         // foreach (var d in data) {
         //     d.Dump();
         // }
+
+        // Train
         var columns = new[] {
             DataFrameColumn.Create("CosDayOfWeek", data.Select(d => d.CosDayOfWeek)),
             DataFrameColumn.Create("SinDayOfWeek", data.Select(d => d.SinDayOfWeek)),
@@ -58,7 +67,6 @@ public class ThermostatAI
             DataFrameColumn.Create("TargetCelsius", data.Select(d => d.TargetCelsius)),
         };
         var dataView = new DataFrame(columns);
-
         var pipeline =
             mlContext.Transforms.CopyColumns(outputColumnName: "Label", inputColumnName:"TargetCelsius")
             // .Append(mlContext.Transforms.Categorical.OneHotEncoding(outputColumnName: "DayOfWeekEncoded", inputColumnName:"DayOfWeek"))
@@ -69,12 +77,9 @@ public class ThermostatAI
             .Append(mlContext.Regression.Trainers.LbfgsPoissonRegression());
         var model = pipeline.Fit(dataView);
 
+        // Predict
         var predictionFunction = mlContext.Model.CreatePredictionEngine<ThermostatData, ThermostatPrediction>(model);
-
         var sample = new ThermostatData(DateTime.UtcNow, 0);
-        // sample = data[0];
-        // Console.WriteLine("Sample:");
-        // sample.Dump();
         var prediction = predictionFunction.Predict(sample);
 
         return prediction;
