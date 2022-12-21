@@ -19,9 +19,9 @@ else
         if (deviceStatus.TryGetValue (device.Id, out var s))
         {
             <p>@s.Status</p>
-            <p>Current: @s.CurrentTemperature.CelsiusToFahrenheit() ℉ (@s.CurrentTemperature ℃)</p>
-            <p>Target: @s.SetTemperature.CelsiusToFahrenheit() ℉ (@s.SetTemperature ℃)</p>
-            <p>Request: @s.LastRequestTemperature.CelsiusToFahrenheit() ℉ (@s.LastRequestTemperature ℃) @@ @s.LastRequestTemperatureTimestamp.ToLocalTime()</p>
+            <p>Current: <InlineTemp Celsius=@s.CurrentTemperature/></p>
+            <p>Target: <InlineTemp Celsius=@s.SetTemperature/></p>
+            <p>Request: <InlineTemp Celsius=@s.LastRequestTemperature/> @@ @s.LastRequestTemperatureTimestamp.ToLocalTime()</p>
             <StripChart Width="600" Height="200" Data="@(new[]{s.AISetTemperaturesF, s.TempReadingsF})" XLabel="Time (minutes)" YLabel="Temperature (℉)" />
         }
     }
