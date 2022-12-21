@@ -63,13 +63,15 @@
 
         var dataWithPoints = Data.Where(d => d.Length > 0).ToArray();
 
-        minX = dataWithPoints.Min(d => d.Min(p => p.X));
-        var maxX = dataWithPoints.Max(d => d.Max(p => p.X));
-        minY = dataWithPoints.Min(d => d.Min(p => p.Y));
-        var maxY = dataWithPoints.Max(d => d.Max(p => p.Y));
+        if (dataWithPoints.Length > 0) {
+            minX = dataWithPoints.Min(d => d.Min(p => p.X));
+            var maxX = dataWithPoints.Max(d => d.Max(p => p.X));
+            minY = dataWithPoints.Min(d => d.Min(p => p.Y));
+            var maxY = dataWithPoints.Max(d => d.Max(p => p.Y));
+            dxdw = (maxX - minX) / iwidth;
+            dydh = (maxY - minY) / iheight;
+        }
 
-        dxdw = (maxX - minX) / iwidth;
-        dydh = (maxY - minY) / iheight;
         foreach (var data in Data) {
             if (data.Length == 0) {
                 pointsSvgs.Add("");
