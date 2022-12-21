@@ -22,6 +22,12 @@ else
             <p>Current: <InlineTemp Celsius=@s.CurrentTemperature/></p>
             <p>Target: <InlineTemp Celsius=@s.SetTemperature/></p>
             <p>Request: <InlineTemp Celsius=@s.LastRequestTemperature/> @@ @s.LastRequestTemperatureTimestamp.ToLocalTime()</p>
+            <p><select value=@displayMinutes @onchange=@(e => SelectMinutes(e.Value??60*24))>
+                @foreach (var mins in new[]{(60, "1 hour"), (60*12, "12 hours"), (60*24, "24 hours"), (60*24*7, "7 days")})
+                {
+                    <option value="@mins.Item1">@mins.Item2</option>
+                }
+            </select></p>
             <StripChart Width="600" Height="200" Data="@(new[]{s.AISetTemperaturesF, s.TempReadingsF})" XLabel="Time (minutes)" YLabel="Temperature (℉)" />
         }
     }
@@ -32,6 +38,13 @@ else
     private Dictionary<Guid, DeviceInfo> deviceStatus = new Dictionary<Guid, DeviceInfo>();
 
     private string newDeviceName = "";
+    private int displayMinutes = 60*24;
+
+    async Task SelectMinutes(object value)
+    {
+        displayMinutes = Convert.ToInt32(value);
+        await Refresh();
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -40,6 +53,7 @@ else
 
     async Task Refresh()
     {
+        @* Console.WriteLine($"Query for {displayMinutes} minutes"); *@
         devices = await db.GetDevicesAsync();
         StateHasChanged();
         var ai = new ThermostatAI();
@@ -47,7 +61,7 @@ else
         {
             var lastSetTemp = await db.GetThermostatUserSetpointAsync(device.Id);
             var now = DateTime.UtcNow;
-            var states = (await DeviceStatesOverTime.LoadAsync(device.Id, 24*60, db)).States.Where(s => s.HasAllData).ToArray();
+            var states = (await DeviceStatesOverTime.LoadAsync(device.Id, displayMinutes, db)).States.Where(s => s.HasAllData).ToArray();
             var minTime = states.Length > 0 ? states[0].Timestamp : now;
             deviceStatus[device.Id] = new DeviceInfo(device.Id) {
                 Status = await device.GetOnlineDisplayStatusAsync(db),
