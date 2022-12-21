@@ -22,7 +22,7 @@ else
             <p>Current: <InlineTemp Celsius=@s.CurrentTemperature/></p>
             <p>Target: <InlineTemp Celsius=@s.SetTemperature/></p>
             <p>Request: <InlineTemp Celsius=@s.LastRequestTemperature/> @@ @s.LastRequestTemperatureTimestamp.ToLocalTime()</p>
-            <p><select value=@displayMinutes @onchange=@(e => SelectMinutes(e.Value??60*24))>
+            <p><select value=@displayMinutes @onchange=@(e => SelectMinutes(e.Value??60*12))>
                 @foreach (var mins in new[]{(60, "1 hour"), (60*12, "12 hours"), (60*24, "24 hours"), (60*24*7, "7 days")})
                 {
                     <option value="@mins.Item1">@mins.Item2</option>
@@ -38,7 +38,7 @@ else
     private Dictionary<Guid, DeviceInfo> deviceStatus = new Dictionary<Guid, DeviceInfo>();
 
     private string newDeviceName = "";
-    private int displayMinutes = 60*24;
+    private int displayMinutes = 60*12;
 
     async Task SelectMinutes(object value)
     {
