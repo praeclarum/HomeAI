@@ -22,6 +22,9 @@ void setup() {
   Serial.println();
   Serial.println();
 
+  pinMode(HEATER_PIN, OUTPUT);
+  digitalWrite(HEATER_PIN, isHeaterOn ? HIGH : LOW);
+
   displaySetup();
   thermometerSetup();
   knobSetup();
@@ -111,7 +114,13 @@ void control(float currentCelsius, float targetCelsius)
   if (apiPostHeaterOn(heaterShouldBeOn)) {
     isHeaterOn = heaterShouldBeOn;
     // Actually turn on the relay
-    // digitalWrite(HEATER_RELAY_PIN, isHeaterOn ? HIGH : LOW);
+    digitalWrite(HEATER_PIN, isHeaterOn ? HIGH : LOW);
+  }
+  if (isHeaterOn) {
+    Serial.println("HEATER ON");
+  }
+  else {
+    Serial.println("HEATER OFF");
   }
 }
 
