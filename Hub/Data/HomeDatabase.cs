@@ -10,6 +10,8 @@ public class HomeDatabase
         new Lazy<SQLiteConnectionString>(() =>
             new SQLiteConnectionString(Path.Combine(Environment.GetEnvironmentVariable("HOME") ?? "", "Home.db")));
 
+    public static string DatabasePath => _connectionString.Value.DatabasePath;
+
     public HomeDatabase()
     {
         _database = new SQLiteAsyncConnection(_connectionString.Value);

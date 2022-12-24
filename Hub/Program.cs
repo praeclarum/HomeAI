@@ -4,6 +4,7 @@ using Hub.Data;
 
 // Init event database
 {
+    Console.WriteLine("Database file: " + HomeDatabase.DatabasePath);
     var db = new HomeDatabase();
     await db.CreateTablesAsync();
 }
