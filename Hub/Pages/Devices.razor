@@ -69,7 +69,7 @@ else
         StateHasChanged();
         foreach (var device in devices)
         {
-            deviceStatus[device.Id] = await device.GetOnlineDisplayStatusAsync(db);
+            deviceStatus[device.Id] = await db.GetOnlineDisplayStatusAsync(device.Id, db);
             StateHasChanged();
         }
     }

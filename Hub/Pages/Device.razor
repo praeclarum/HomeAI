@@ -8,6 +8,8 @@
 
 <p>Id:&nbsp;<strong>@(Guid.Parse(Id).ToString())</strong></p>
 
+<DeviceInfoView DeviceInfo="@deviceInfo" />
+
 @if (events == null)
 {
     <p><em>Loading Events...</em></p>
@@ -26,9 +28,13 @@ else
 
     private Hub.Data.Device? device = null;
 
+    DeviceInfo? deviceInfo = null;
+
     protected override async Task OnInitializedAsync()
     {
-        device = await db.GetDeviceAsync(Guid.Parse(Id));
+        var deviceId = Guid.Parse(Id);
+        device = await db.GetDeviceAsync(deviceId);
+        deviceInfo = await DeviceInfo.LoadAsync(deviceId, 12*60, db);
         await Refresh();
     }
 

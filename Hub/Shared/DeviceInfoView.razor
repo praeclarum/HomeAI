@@ -1,0 +1,26 @@
+@if (DeviceInfo is DeviceInfo s) {
+    <p>@s.Status</p>
+    <p>Current: <InlineTemp Celsius=@s.CurrentTemperature/></p>
+    <p>Target: <InlineTemp Celsius=@s.SetTemperature/></p>
+    <p>Request: <InlineTemp Celsius=@s.LastRequestTemperature/> @@ @s.LastRequestTemperatureTimestamp.ToLocalTime()</p>
+    <p><select hidden value=@displayMinutes @onchange=@(e => SelectMinutes(e.Value??60*12))>
+        @foreach (var mins in new[]{(60, "1 hour"), (60*12, "12 hours"), (60*24, "24 hours"), (60*24*7, "7 days")})
+        {
+            <option value="@mins.Item1">@mins.Item2</option>
+        }
+    </select></p>
+    <StripChart Width="600" Height="200" Data="@(new[]{s.AISetTemperaturesF, s.TempReadingsF})" XLabel="Time (minutes)" YLabel="Temperature (℉)" />
+}
+
+@code {
+    [Parameter] public DeviceInfo? DeviceInfo { get; set; } = null;
+
+    private int displayMinutes = 60*12;
+
+    void SelectMinutes(object value)
+    {
+        displayMinutes = Convert.ToInt32(value);
+        StateHasChanged();
+    }
+
+}

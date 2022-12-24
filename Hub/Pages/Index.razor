@@ -17,20 +17,10 @@ else
 {
     @foreach (var device in devices)
     {
-        <h3>@device.Name</h3>
+        <h3><a href="/devices/@device.Id">@device.Name</a></h3>
         if (deviceStatus.TryGetValue (device.Id, out var s))
         {
-            <p>@s.Status</p>
-            <p>Current: <InlineTemp Celsius=@s.CurrentTemperature/></p>
-            <p>Target: <InlineTemp Celsius=@s.SetTemperature/></p>
-            <p>Request: <InlineTemp Celsius=@s.LastRequestTemperature/> @@ @s.LastRequestTemperatureTimestamp.ToLocalTime()</p>
-            <p><select hidden value=@displayMinutes @onchange=@(e => SelectMinutes(e.Value??60*12))>
-                @foreach (var mins in new[]{(60, "1 hour"), (60*12, "12 hours"), (60*24, "24 hours"), (60*24*7, "7 days")})
-                {
-                    <option value="@mins.Item1">@mins.Item2</option>
-                }
-            </select></p>
-            <StripChart Width="600" Height="200" Data="@(new[]{s.AISetTemperaturesF, s.TempReadingsF})" XLabel="Time (minutes)" YLabel="Temperature (℉)" />
+            <DeviceInfoView DeviceInfo="@s" />
         }
     }
 }
@@ -40,13 +30,8 @@ else
     private Dictionary<Guid, DeviceInfo> deviceStatus = new Dictionary<Guid, DeviceInfo>();
 
     private string newDeviceName = "";
-    private int displayMinutes = 60*12;
 
-    async Task SelectMinutes(object value)
-    {
-        displayMinutes = Convert.ToInt32(value);
-        await Refresh();
-    }
+    int displayMinutes = 12*60;
 
     protected override async Task OnInitializedAsync()
     {
@@ -65,22 +50,7 @@ else
             var now = DateTime.UtcNow;
             var states = (await DeviceStatesOverTime.LoadAsync(device.Id, displayMinutes, db)).States.Where(s => s.HasAllData).ToArray();
             var minTime = states.Length > 0 ? states[0].Timestamp : now;
-            deviceStatus[device.Id] = new DeviceInfo(device.Id) {
-                Status = await device.GetOnlineDisplayStatusAsync(db),
-                CurrentTemperature = states.Length > 0 ? states[^1].ThermostatReading : 0.0,
-                SetTemperature = await (new ThermostatAI().GetSetpointAsync(db, device.Id)),
-                LastRequestTemperature = lastSetTemp?.Value ?? 0.0,
-                LastRequestTemperatureTimestamp = lastSetTemp?.Timestamp ?? DateTime.MinValue,
-                TempReadingsF = states.Select(s => (
-                    (s.Timestamp - minTime).TotalMinutes,
-                    s.ThermostatReading.CelsiusToFahrenheit()
-                )).ToArray(),
-                AISetTemperaturesF = states.Select(s => (
-                    (s.Timestamp - minTime).TotalMinutes,
-                    s.AISetTemperature.CelsiusToFahrenheit()
-                )).ToArray(),
-                States = states,
-            };
+            deviceStatus[device.Id] = await DeviceInfo.LoadAsync(device.Id, displayMinutes, db);
             StateHasChanged();
         }
     }

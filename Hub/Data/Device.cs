@@ -6,32 +6,11 @@ namespace Hub.Data;
 
 public class Device
 {
-    static readonly TimeSpan onlineTimeout = TimeSpan.FromMinutes(5);
+    public static readonly TimeSpan OnlineTimeout = TimeSpan.FromMinutes(5);
 
     [PrimaryKey]
     public DeviceId Id { get; set; }
     public string Name { get; set; } = "";
-
-    public async Task<string> GetOnlineDisplayStatusAsync(HomeDatabase db)
-    {
-        var lastEvent = await db.GetLastEventAsync(Id);
-        if (lastEvent is null)
-        {
-            return "Not seen";
-        }
-        else
-        {
-            var timeSinceLastEvent = DateTime.UtcNow - lastEvent.Timestamp;
-            if (timeSinceLastEvent < onlineTimeout)
-            {
-                return "Online";
-            }
-            else
-            {
-                return "Offline";
-            }
-        }
-    }
 }
 
 public class DeviceState
@@ -100,7 +79,7 @@ public class DeviceStatesOverTime
     }
 }
 
-class DeviceInfo {
+public class DeviceInfo {
     public Guid Id { get; set; } = Guid.Empty;
     public string Name { get; set; } = "";
     public string Status { get; set; } = "";
@@ -114,5 +93,27 @@ class DeviceInfo {
     public DeviceState[] States { get; set; } = Array.Empty<DeviceState>();
     public DeviceInfo(Guid deviceId) {
         Id = deviceId;
+    }
+    public static async Task<DeviceInfo> LoadAsync(Guid deviceId, int displayMinutes, HomeDatabase db) {
+        var lastSetTemp = await db.GetThermostatUserSetpointAsync(deviceId);
+        var now = DateTime.UtcNow;
+        var states = (await DeviceStatesOverTime.LoadAsync(deviceId, displayMinutes, db)).States.Where(s => s.HasAllData).ToArray();
+        var minTime = states.Length > 0 ? states[0].Timestamp : now;
+        return new DeviceInfo(deviceId) {
+            Status = await db.GetOnlineDisplayStatusAsync(deviceId, db),
+            CurrentTemperature = states.Length > 0 ? states[^1].ThermostatReading : 0.0,
+            SetTemperature = await (new Hub.AI.ThermostatAI().GetSetpointAsync(db, deviceId)),
+            LastRequestTemperature = lastSetTemp?.Value ?? 0.0,
+            LastRequestTemperatureTimestamp = lastSetTemp?.Timestamp ?? DateTime.MinValue,
+            TempReadingsF = states.Select(s => (
+                (s.Timestamp - minTime).TotalMinutes,
+                s.ThermostatReading.CelsiusToFahrenheit()
+            )).ToArray(),
+            AISetTemperaturesF = states.Select(s => (
+                (s.Timestamp - minTime).TotalMinutes,
+                s.AISetTemperature.CelsiusToFahrenheit()
+            )).ToArray(),
+            States = states,
+        };
     }
 }
