@@ -13,49 +13,16 @@
 else
 {
     <button @onclick=Refresh>Refresh</button>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Id</th>
-                <th>Time (UTC)</th>
-                <th>Type</th>
-                <th>Value</th>
-                <th>Device</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var e in events)
-            {
-                <tr>
-                    <td>@e.Id</td>
-                    <td>@e.Timestamp</td>
-                    <td>@e.EventType</td>
-                    @if (e.EventType.IsCelsiusValue()) {
-                        <td><InlineTemp Celsius="@e.Value" /></td>
-                    }
-                    else {
-                        <td>@e.Value</td>
-                    }
-                    <td>@(deviceNames.TryGetValue(e.DeviceId, out var n) ? n : e.DeviceId.ToString()[..8])</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <EventList Events="events" />
 }
 
 @code {
-    private Dictionary<Guid, string> deviceNames = new Dictionary<Guid, string>();
     private DataLogEvent[]? events;
 
     private string newDeviceName = "";
 
     protected override async Task OnInitializedAsync()
     {
-        var devices = await db.GetDevicesAsync();
-        foreach (var d in devices)
-        {
-            deviceNames[d.Id] = d.Name;
-        }
         await Refresh();
     }
 

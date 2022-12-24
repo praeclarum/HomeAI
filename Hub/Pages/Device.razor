@@ -1,0 +1,41 @@
+@page "/devices/{id}"
+
+@inject HomeDatabase db;
+
+<PageTitle>@device?.Name</PageTitle>
+
+<h1>@device?.Name</h1>
+
+<p>Id:&nbsp;<strong>@(Guid.Parse(Id).ToString())</strong></p>
+
+@if (events == null)
+{
+    <p><em>Loading Events...</em></p>
+}
+else
+{
+    <button @onclick=Refresh>Refresh</button>
+    <EventList Events="events" />
+}
+
+@code {
+    [Parameter]
+    public string Id { get; set; } = "";
+
+    private DataLogEvent[]? events;
+
+    private Hub.Data.Device? device = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        device = await db.GetDeviceAsync(Guid.Parse(Id));
+        await Refresh();
+    }
+
+    async Task Refresh()
+    {
+        events = await db.GetEventsForDeviceAsync(Guid.Parse(Id), 100);
+        StateHasChanged();
+    }
+}
+

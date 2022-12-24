@@ -16,7 +16,6 @@ else
     <table class="table">
         <thead>
             <tr>
-                <th>Id</th>
                 <th>Name</th>
                 <th>Online</th>
             </tr>
@@ -25,8 +24,7 @@ else
             @foreach (var device in devices)
             {
                 <tr>
-                    <td>@device.Id</td>
-                    <td>@device.Name</td>
+                    <td><a href="/devices/@device.Id">@device.Name</a></td>
                     <td>@(deviceStatus.TryGetValue(device.Id, out var s) ? s : "")</td>
                 </tr>
             }
@@ -42,7 +40,7 @@ else
 }
 
 @code {
-    private Device[]? devices;
+    private Hub.Data.Device[]? devices;
     private Dictionary<Guid, string> deviceStatus = new Dictionary<Guid, string>();
 
     private string newDeviceName = "";
@@ -51,7 +49,7 @@ else
     private async Task AddDevice()
     {
         if (!string.IsNullOrWhiteSpace (newDeviceName)) {
-        var device = new Device {
+        var device = new Hub.Data.Device {
             Id = Guid.NewGuid(),
             Name = newDeviceName.Trim() };
         await db.AddDeviceAsync(device);

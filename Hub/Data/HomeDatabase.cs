@@ -28,6 +28,11 @@ public class HomeDatabase
         return _database.Table<Device>().OrderBy(x => x.Name).ToArrayAsync();
     }
 
+    public async Task<Device?> GetDeviceAsync(DeviceId id)
+    {
+        return await _database.Table<Device>().Where(x => x.Id == id).FirstOrDefaultAsync().ConfigureAwait(false);
+    }
+
     public Task AddDeviceAsync(Device device)
     {
         return _database.InsertAsync(device);
@@ -49,6 +54,15 @@ public class HomeDatabase
     public Task<DataLogEvent[]> GetEventsAsync(int pageSize)
     {
         return _database.Table<DataLogEvent>()
+            .OrderByDescending(x => x.Timestamp)
+            .Take(pageSize)
+            .ToArrayAsync();
+    }
+
+    public Task<DataLogEvent[]> GetEventsForDeviceAsync(DeviceId deviceId, int pageSize)
+    {
+        return _database.Table<DataLogEvent>()
+            .Where(x => x.DeviceId == deviceId)
             .OrderByDescending(x => x.Timestamp)
             .Take(pageSize)
             .ToArrayAsync();
