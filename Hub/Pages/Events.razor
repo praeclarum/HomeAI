@@ -30,7 +30,12 @@ else
                     <td>@e.Id</td>
                     <td>@e.Timestamp</td>
                     <td>@e.EventType</td>
-                    <td>@e.Value</td>
+                    @if (e.EventType.IsCelsiusValue()) {
+                        <td><InlineTemp Celsius="@e.Value" /></td>
+                    }
+                    else {
+                        <td>@e.Value</td>
+                    }
                     <td>@(deviceNames.TryGetValue(e.DeviceId, out var n) ? n : e.DeviceId.ToString()[..8])</td>
                 </tr>
             }

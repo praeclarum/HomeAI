@@ -18,3 +18,9 @@ public enum LogEventType {
     /// </summary>
     HeaterOn = 3,
 }
+
+public static class LogEventTypeEx {
+    public static bool IsCelsiusValue(this LogEventType type) {
+        return type == LogEventType.ThermostatReading || type == LogEventType.UserTemperatureSetting || type == LogEventType.AITemperatureSetting;
+    }
+}
