@@ -20,6 +20,7 @@ public class HomeDatabase
     public async Task CreateTablesAsync()
     {
         await _database.CreateTableAsync<DataLogEvent>();
+        await _database.CreateTableAsync<OccupancyEvent>();
         await _database.CreateTableAsync<Device>();
     }
 
@@ -138,6 +139,23 @@ public class HomeDatabase
         finally {
             File.Delete(tempPath);
         }
+    }
+
+    public async Task<OccupancyEvent?> GetOccupancyAsync() {
+        return await _database.Table<OccupancyEvent>()
+            .OrderByDescending(x => x.Timestamp)
+            .FirstOrDefaultAsync()
+            .ConfigureAwait(false);
+    }
+
+    public async Task AddManualOccupancyAsync(bool occupied, double unoccupiedCelsius) {
+        var newEvent = new OccupancyEvent {
+            Timestamp = DateTime.UtcNow,
+            EventType = OccupancyEventType.Manual,
+            Occupied = occupied,
+            UnoccupiedCelsius = unoccupiedCelsius
+        };
+        await _database.InsertAsync(newEvent).ConfigureAwait(false);
     }
 }
 
