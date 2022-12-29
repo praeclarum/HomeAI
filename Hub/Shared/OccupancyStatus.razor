@@ -1,0 +1,52 @@
+@inject HomeDatabase db;
+
+<section>
+    <h1>Occupancy</h1>
+
+@if (occupancy is OccupancyEvent e) {
+    <p>Occupied: @e.Occupied (@e.EventType)</p>
+
+    @if (!e.Occupied) {
+        <p>Away Temperature: <InlineTemp Celsius=@e.UnoccupiedCelsius /></p>
+    }
+}
+
+<p>Key: <input type="password" @bind="@writeKey" /></p>
+@if (Secrets.CanWriteWithKey(writeKey))
+{   
+    <p><button @onclick=SetOccupiedAsync>Set Occupied</button></p>
+    <p><button @onclick=SetUnoccupiedAsync>Set Unoccupied</button> <input type="number" @bind=setUnoccupiedF /> ℉</p>
+}
+
+</section>
+
+@code {
+    OccupancyEvent? occupancy = null;
+    string writeKey = "";
+
+    double setUnoccupiedF = 50.0;
+
+    Task SetOccupiedAsync() {
+        return AddOccupiedEventAsync(true);
+    }
+    Task SetUnoccupiedAsync() {
+        return AddOccupiedEventAsync(false);
+    }
+
+    async Task AddOccupiedEventAsync(bool occupied) {
+        await db.AddManualOccupancyAsync(
+            occupied: occupied,
+            unoccupiedCelsius: (setUnoccupiedF - 32.0) * 5.0 / 9.0
+        );
+        occupancy = await db.GetOccupancyAsync();
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        occupancy = await db.GetOccupancyAsync();
+        StateHasChanged();
+    }
+}
+
+
