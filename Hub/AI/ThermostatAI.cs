@@ -16,8 +16,15 @@ public class ThermostatAI
     /// </summary>
     public async Task<double> GetSetpointAsync(HomeDatabase db, DeviceId id)
     {
+        // First, check if the house is unoccupied.
+        if (await db.GetOccupancyAsync() is OccupancyEvent occupancy &&
+            !occupancy.Occupied)
+        {
+            // If the house is unoccupied, use the default setpoint.
+            return occupancy.UnoccupiedCelsius;
+        }
         var now = DateTime.UtcNow;
-        // First, check if the user has set a setpoint for this device.
+        // Next, check if the user has set a setpoint for this device.
         if (await db.GetThermostatUserSetpointAsync(id) is DataLogEvent userSetpoint &&
             userSetpoint.Timestamp > now - SetpointDuration)
         {
