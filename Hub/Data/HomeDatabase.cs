@@ -33,23 +33,23 @@ public class HomeDatabase
         return await _database.Table<Device>().Where(x => x.Id == id).FirstOrDefaultAsync().ConfigureAwait(false);
     }
 
-    public async Task<string> GetOnlineDisplayStatusAsync(DeviceId deviceId, HomeDatabase db)
+    public async Task<DeviceStatus> GetOnlineDisplayStatusAsync(DeviceId deviceId, HomeDatabase db)
     {
         var lastEvent = await GetLastEventAsync(deviceId);
         if (lastEvent is null)
         {
-            return "Not seen";
+            return DeviceStatus.Unknown;
         }
         else
         {
             var timeSinceLastEvent = DateTime.UtcNow - lastEvent.Timestamp;
             if (timeSinceLastEvent < Device.OnlineTimeout)
             {
-                return "Online";
+                return DeviceStatus.Online;
             }
             else
             {
-                return "Offline";
+                return DeviceStatus.Offline;
             }
         }
     }

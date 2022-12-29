@@ -17,9 +17,9 @@ else
 {
     @foreach (var device in devices)
     {
-        <h3><a href="/devices/@device.Id">@device.Name</a></h3>
-        if (deviceStatus.TryGetValue (device.Id, out var s))
+        if (deviceStatus.TryGetValue (device.Id, out var s) && s.Status != DeviceStatus.Offline)
         {
+            <h3><a href="/devices/@device.Id">@device.Name</a></h3>
             <DeviceInfoView DeviceInfo="@s" />
         }
     }

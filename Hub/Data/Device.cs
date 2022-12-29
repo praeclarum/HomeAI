@@ -82,7 +82,7 @@ public class DeviceStatesOverTime
 public class DeviceInfo {
     public Guid Id { get; set; } = Guid.Empty;
     public string Name { get; set; } = "";
-    public string Status { get; set; } = "";
+    public DeviceStatus Status { get; set; } = DeviceStatus.Unknown;
     public double CurrentTemperature { get; set; } = 0;
     public double SetTemperature { get; set; } = 0;
     public double LastRequestTemperature { get; set; } = 0;
@@ -117,3 +117,10 @@ public class DeviceInfo {
         };
     }
 }
+
+public enum DeviceStatus {
+    Unknown,
+    Online,
+    Offline,
+}
+
