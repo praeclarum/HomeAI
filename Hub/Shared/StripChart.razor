@@ -30,6 +30,8 @@
     [Parameter] public int Height { get; set; }
     [Parameter] public string XLabel { get; set; } = "X";
     [Parameter] public string YLabel { get; set; } = "Y";
+    [Parameter] public double? FixedMinY { get; set; } = null;
+    [Parameter] public double? FixedMaxY { get; set; } = null;
     [Parameter] public (double X, double Y)[][] Data { get; set; } = Array.Empty<(double X, double Y)[]>();
 
     static readonly string[] colors = new[] { "#0071c1", "green", "blue", "orange", "red", "purple", "black", "brown", "pink", "gray" };
@@ -47,6 +49,8 @@
     double minX, minY;
     double dxdw, dydh;
     int iheight;
+
+
 
     (double, double) Project((double X, double Y) p) =>
         (padding + (p.X - minX) / dxdw, iheight - (p.Y - minY) / dydh);
@@ -66,8 +70,8 @@
         if (dataWithPoints.Length > 0) {
             minX = dataWithPoints.Min(d => d.Min(p => p.X));
             var maxX = dataWithPoints.Max(d => d.Max(p => p.X));
-            minY = dataWithPoints.Min(d => d.Min(p => p.Y));
-            var maxY = dataWithPoints.Max(d => d.Max(p => p.Y));
+            minY = FixedMinY ?? dataWithPoints.Min(d => d.Min(p => p.Y));
+            var maxY = FixedMaxY ?? dataWithPoints.Max(d => d.Max(p => p.Y));
             dxdw = (maxX - minX) / iwidth;
             dydh = (maxY - minY) / iheight;
         }

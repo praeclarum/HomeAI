@@ -9,7 +9,7 @@
 @foreach (var chart in charts) {
     <div class="chart">
         <h4>@chart.Title</h4>
-        <StripChart Width="600" Height="200" Data=@chart.Data YLabel="Fahrenheit" />
+        <StripChart Width="600" Height="200" Data=@chart.Data YLabel="Fahrenheit" FixedMinY=65 FixedMaxY=80 />
     </div>
 }
 
@@ -44,9 +44,9 @@
             AI.AITrainingAlgorithm.LbfgsPoisson,
             @* AI.AITrainingAlgorithm.Gam,
             AI.AITrainingAlgorithm.Sdca, *@
+            AI.AITrainingAlgorithm.FastForest,
             AI.AITrainingAlgorithm.FastTreeTweedie,
             AI.AITrainingAlgorithm.FastTree,
-            AI.AITrainingAlgorithm.FastForest,
             @* AI.AITrainingAlgorithm.OnlineGradientDescent, *@
         };
 
