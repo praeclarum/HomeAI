@@ -11,7 +11,7 @@ public class ThermostatAI
 {
     static readonly TimeSpan SetpointDuration = TimeSpan.FromHours(2.0);
 
-    const AITrainingAlgorithm DefaultAlgorithm = AITrainingAlgorithm.FastForest;
+    const AITrainingAlgorithm DefaultAlgorithm = AITrainingAlgorithm.FastTree;
 
     /// <summary>
     /// Gets the setpoint for the thermostat in Celsius.
@@ -41,10 +41,10 @@ public class ThermostatAI
     async Task<ThermostatPrediction> PredictAsync(HomeDatabase db, DeviceId id)
     {
         var predictions = await PredictManyAsync(new[] { DateTime.UtcNow }, DefaultAlgorithm, db, id);
-        return predictions[0];
+        return predictions.Predictions[0];
     }
 
-    public async Task<ThermostatPrediction[]> PredictManyAsync(DateTime[] times, AITrainingAlgorithm algorithm, HomeDatabase db, DeviceId id)
+    public async Task<(ThermostatPrediction[] Predictions, float Mae, float Mse)> PredictManyAsync(DateTime[] times, AITrainingAlgorithm algorithm, HomeDatabase db, DeviceId id)
     {
         // Console.WriteLine("Training model...");
 
@@ -61,11 +61,11 @@ public class ThermostatAI
         var data = dataQ.ToArray();
         if (data.Length == 0)
         {
-            return new[] { new ThermostatPrediction { TargetCelsius = (float)67.0.FahrenheitToCelsius() } };
+            return (new[] { new ThermostatPrediction { TargetCelsius = (float)67.0.FahrenheitToCelsius() } }, 1.0f, 1.0f);
         }
         else if (data.Length == 1)
         {
-            return new[] { new ThermostatPrediction { TargetCelsius = data[0].TargetCelsius } };
+            return (new[] { new ThermostatPrediction { TargetCelsius = data[0].TargetCelsius } }, 1.0f, 1.0f);
         }
         // foreach (var d in data) {
         //     d.Dump();
@@ -90,25 +90,34 @@ public class ThermostatAI
                 "CosDayOfWeek", "SinDayOfWeek",
                 "CosDayOfYear", "SinDayOfYear",
                 "CosHour", "SinHour"));
-        ITransformer model = algorithm switch
+        IEstimator<ITransformer> estimator = algorithm switch
         {
             AITrainingAlgorithm.LbfgsPoisson =>
-                pipelineHead.Append (mlContext.Regression.Trainers.LbfgsPoissonRegression()).Fit(dataView),
+                pipelineHead.Append (mlContext.Regression.Trainers.LbfgsPoissonRegression()),
             AITrainingAlgorithm.Gam =>
-                pipelineHead.Append (mlContext.Regression.Trainers.Gam()).Fit(dataView),
+                pipelineHead.Append (mlContext.Regression.Trainers.Gam()),
             AITrainingAlgorithm.Sdca =>
-                pipelineHead.Append (mlContext.Regression.Trainers.Sdca()).Fit(dataView),
+                pipelineHead.Append (mlContext.Regression.Trainers.Sdca()),
             AITrainingAlgorithm.FastTreeTweedie =>
-                pipelineHead.Append (mlContext.Regression.Trainers.FastTreeTweedie()).Fit(dataView),
+                pipelineHead.Append (mlContext.Regression.Trainers.FastTreeTweedie()),
             AITrainingAlgorithm.FastTree =>
-                pipelineHead.Append (mlContext.Regression.Trainers.FastTree()).Fit(dataView),
+                pipelineHead.Append (mlContext.Regression.Trainers.FastTree()),
             AITrainingAlgorithm.FastForest =>
-                pipelineHead.Append (mlContext.Regression.Trainers.FastForest()).Fit(dataView),
+                pipelineHead.Append (mlContext.Regression.Trainers.FastForest()),
             AITrainingAlgorithm.OnlineGradientDescent =>
-                pipelineHead.Append (mlContext.Regression.Trainers.OnlineGradientDescent()).Fit(dataView),
+                pipelineHead.Append (mlContext.Regression.Trainers.OnlineGradientDescent()),
             _ =>
                 throw new NotSupportedException(algorithm.ToString())
         };
+        var model = estimator.Fit(dataView);
+
+        var validationPredictionsData = model.Transform(dataView);
+        var validationPredictions = validationPredictionsData.GetColumn<float>("Score").ToArray();
+        var validationAbsErrors = validationPredictions.Zip(data.Select(d => d.TargetCelsius), (p, t) => Math.Abs(p - t)).ToArray();
+        var validationSqErrors = validationPredictions.Zip(data.Select(d => d.TargetCelsius), (p, t) => (p - t)*(p - t)).ToArray();
+        var validationMAE = validationAbsErrors.Average();
+        var validationMSE = validationSqErrors.Average();
+        // System.Console.WriteLine($"{algorithm} Abs Error: {validationMAE}, Sq Error: {validationMSE}");
 
         // Predict
         var predictionFunction = mlContext.Model.CreatePredictionEngine<ThermostatData, ThermostatPrediction>(model);
@@ -119,7 +128,7 @@ public class ThermostatAI
             var prediction = predictionFunction.Predict(sample);
             predictions[i] = prediction;
         }
-        return predictions;
+        return (predictions, validationMAE, validationMSE);
     }
 }
 

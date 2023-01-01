@@ -9,6 +9,7 @@
 @foreach (var chart in charts) {
     <div class="chart">
         <h4>@chart.Title</h4>
+        <p>Model squared error: @(chart.Mse.ToString("0.0000")), absolute error: @(chart.Mae.ToString("0.0000"))</p>
         <StripChart Width="600" Height="200" Data=@chart.Data YLabel="Fahrenheit" FixedMinY=65 FixedMaxY=80 />
     </div>
 }
@@ -21,6 +22,8 @@
     {
         public string Title = "";
         public (double X, double Y)[][] Data { get; set; } = Array.Empty<(double X, double Y)[]>();
+        public float Mae;
+        public float Mse;
     }
 
     protected override async Task OnInitializedAsync()
@@ -41,13 +44,13 @@
 
         var ai = new Hub.AI.ThermostatAI();
         var algos = new [] {
-            AI.AITrainingAlgorithm.LbfgsPoisson,
-            @* AI.AITrainingAlgorithm.Gam,
-            AI.AITrainingAlgorithm.Sdca, *@
-            AI.AITrainingAlgorithm.FastForest,
-            AI.AITrainingAlgorithm.FastTreeTweedie,
             AI.AITrainingAlgorithm.FastTree,
-            @* AI.AITrainingAlgorithm.OnlineGradientDescent, *@
+            AI.AITrainingAlgorithm.FastTreeTweedie,
+            AI.AITrainingAlgorithm.FastForest,
+            AI.AITrainingAlgorithm.Gam,
+            AI.AITrainingAlgorithm.LbfgsPoisson,
+            @* AI.AITrainingAlgorithm.Sdca,
+            AI.AITrainingAlgorithm.OnlineGradientDescent, *@
         };
 
         foreach (var d in devices) {
@@ -58,11 +61,13 @@
                     Title = $"{d.Name} - {algo}",
                 };
                 chart.Data = new[] {
-                    predictions
+                    predictions.Predictions
                         .Select((p, i) =>
                             ((double)i, (double)p.TargetCelsius * 9.0/5.0 + 32.0))
                         .ToArray(),
                 };
+                chart.Mae = predictions.Mae;
+                chart.Mse = predictions.Mse;
                 charts.Add(chart);
                 StateHasChanged();
             }
