@@ -11,7 +11,7 @@ public class ThermostatAI
 {
     static readonly TimeSpan SetpointDuration = TimeSpan.FromHours(2.0);
 
-    const AITrainingAlgorithm DefaultAlgorithm = AITrainingAlgorithm.LbfgsPoisson;
+    const AITrainingAlgorithm DefaultAlgorithm = AITrainingAlgorithm.FastForest;
 
     /// <summary>
     /// Gets the setpoint for the thermostat in Celsius.
@@ -94,8 +94,18 @@ public class ThermostatAI
         {
             AITrainingAlgorithm.LbfgsPoisson =>
                 pipelineHead.Append (mlContext.Regression.Trainers.LbfgsPoissonRegression()).Fit(dataView),
+            AITrainingAlgorithm.Gam =>
+                pipelineHead.Append (mlContext.Regression.Trainers.Gam()).Fit(dataView),
+            AITrainingAlgorithm.Sdca =>
+                pipelineHead.Append (mlContext.Regression.Trainers.Sdca()).Fit(dataView),
             AITrainingAlgorithm.FastTreeTweedie =>
                 pipelineHead.Append (mlContext.Regression.Trainers.FastTreeTweedie()).Fit(dataView),
+            AITrainingAlgorithm.FastTree =>
+                pipelineHead.Append (mlContext.Regression.Trainers.FastTree()).Fit(dataView),
+            AITrainingAlgorithm.FastForest =>
+                pipelineHead.Append (mlContext.Regression.Trainers.FastForest()).Fit(dataView),
+            AITrainingAlgorithm.OnlineGradientDescent =>
+                pipelineHead.Append (mlContext.Regression.Trainers.OnlineGradientDescent()).Fit(dataView),
             _ =>
                 throw new NotSupportedException(algorithm.ToString())
         };
@@ -116,7 +126,12 @@ public class ThermostatAI
 public enum AITrainingAlgorithm
 {
     LbfgsPoisson,
+    Gam,
+    Sdca,
     FastTreeTweedie,
+    FastTree,
+    FastForest,
+    OnlineGradientDescent,
 }
 
 public class ThermostatData

@@ -9,7 +9,7 @@
 @foreach (var chart in charts) {
     <div class="chart">
         <h4>@chart.Title</h4>
-        <StripChart Width="600" Height="200" Data=@chart.Data />
+        <StripChart Width="600" Height="200" Data=@chart.Data YLabel="Fahrenheit" />
     </div>
 }
 
@@ -42,7 +42,12 @@
         var ai = new Hub.AI.ThermostatAI();
         var algos = new [] {
             AI.AITrainingAlgorithm.LbfgsPoisson,
+            @* AI.AITrainingAlgorithm.Gam,
+            AI.AITrainingAlgorithm.Sdca, *@
             AI.AITrainingAlgorithm.FastTreeTweedie,
+            AI.AITrainingAlgorithm.FastTree,
+            AI.AITrainingAlgorithm.FastForest,
+            @* AI.AITrainingAlgorithm.OnlineGradientDescent, *@
         };
 
         foreach (var d in devices) {
@@ -55,7 +60,7 @@
                 chart.Data = new[] {
                     predictions
                         .Select((p, i) =>
-                            ((double)i, (double)p.TargetCelsius))
+                            ((double)i, (double)p.TargetCelsius * 9.0/5.0 + 32.0))
                         .ToArray(),
                 };
                 charts.Add(chart);
