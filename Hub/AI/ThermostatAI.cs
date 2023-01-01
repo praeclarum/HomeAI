@@ -9,7 +9,7 @@ using Microsoft.ML.Trainers.FastTree;
 
 public class ThermostatAI
 {
-    static readonly TimeSpan SetpointDuration = TimeSpan.FromHours(1.0);
+    static readonly TimeSpan SetpointDuration = TimeSpan.FromHours(2.0);
 
     /// <summary>
     /// Gets the setpoint for the thermostat in Celsius.
