@@ -11,7 +11,7 @@ public class ThermostatAI
 {
     static readonly TimeSpan SetpointDuration = TimeSpan.FromHours(2.0);
 
-    const AITrainingAlgorithm DefaultAlgorithm = AITrainingAlgorithm.FastTree;
+    const AITrainingAlgorithm DefaultAlgorithm = AITrainingAlgorithm.FastTreeTweedie;
 
     /// <summary>
     /// Gets the setpoint for the thermostat in Celsius.
