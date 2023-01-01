@@ -2,7 +2,12 @@ using SQLite;
 
 namespace Hub.Data;
 
-public class DataLogEvent
+public interface ILoggedEvent
+{
+    DateTime Timestamp { get; set; }
+}
+
+public class DataLogEvent : ILoggedEvent
 {
     [PrimaryKey, AutoIncrement]
     public int Id { get; set; }

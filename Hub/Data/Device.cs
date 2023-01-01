@@ -6,7 +6,7 @@ namespace Hub.Data;
 
 public class Device
 {
-    public static readonly TimeSpan OnlineTimeout = TimeSpan.FromMinutes(5);
+    public static readonly TimeSpan OnlineTimeout = TimeSpan.FromHours(1);
 
     [PrimaryKey]
     public DeviceId Id { get; set; }
@@ -38,42 +38,59 @@ public class DeviceStatesOverTime
         States = states.Where(s => s.HasAllData).ToArray();
     }
 
-    public static async Task<DeviceStatesOverTime> LoadAsync(DeviceId id, int minutes, HomeDatabase db)
+    public static async Task<DeviceStatesOverTime> LoadAsync(DeviceId id, int minutes, bool includeAwayData, HomeDatabase db)
     {
         var end = DateTime.UtcNow;
         var start = end - TimeSpan.FromMinutes(minutes);
-        var events = await db.GetEventsAsync(id, start, end).ConfigureAwait(false);
+        var events = await db.GetDeviceEventsAsync(id, start, end).ConfigureAwait(false);
+        var occupancyEvents = await db.GetOccupancyEventsAsync(start, end).ConfigureAwait(false);
+        var houseOccupied = true;
         var heaterOn = false;
         var temperature = 0.0;
         var userSetpoint = 0.0;
         var aiSetpoint = 0.0;
         var states = new List<DeviceState>();
-        foreach (var e in events)
+        var allEvents =
+            events
+            .Cast<ILoggedEvent>()
+            .Concat(occupancyEvents)
+            .OrderBy(e => e.Timestamp)
+            .ToArray();
+        foreach (var loggedEvent in allEvents)
         {
-            if (e.EventType == LogEventType.ThermostatReading)
+            if (loggedEvent is OccupancyEvent occupancy)
             {
-                temperature = e.Value;
+                houseOccupied = occupancy.Occupied;
             }
-            else if (e.EventType == LogEventType.HeaterOn)
-            {
-                heaterOn = e.Value > 0.5f;
+            else if (loggedEvent is DataLogEvent e) {
+                if (e.EventType == LogEventType.ThermostatReading)
+                {
+                    temperature = e.Value;
+                }
+                else if (e.EventType == LogEventType.HeaterOn)
+                {
+                    heaterOn = e.Value > 0.5f;
+                }
+                else if (e.EventType == LogEventType.UserTemperatureSetting)
+                {
+                    userSetpoint = e.Value;
+                }
+                else if (e.EventType == LogEventType.AITemperatureSetting)
+                {
+                    aiSetpoint = e.Value;
+                }
+                var shouldAdd = houseOccupied || includeAwayData;
+                if (shouldAdd) {
+                    states.Add(new DeviceState
+                    {
+                        Timestamp = e.Timestamp,
+                        ThermostatReading = temperature,
+                        AISetTemperature = aiSetpoint,
+                        // UserSetTemperature = userSetpoint,
+                        HeaterOn = heaterOn
+                    });
+                }
             }
-            else if (e.EventType == LogEventType.UserTemperatureSetting)
-            {
-                userSetpoint = e.Value;
-            }
-            else if (e.EventType == LogEventType.AITemperatureSetting)
-            {
-                aiSetpoint = e.Value;
-            }
-            states.Add(new DeviceState
-            {
-                Timestamp = e.Timestamp,
-                ThermostatReading = temperature,
-                AISetTemperature = aiSetpoint,
-                // UserSetTemperature = userSetpoint,
-                HeaterOn = heaterOn
-            });
         }
         return new DeviceStatesOverTime(id, states.ToArray());
     }
@@ -97,7 +114,7 @@ public class DeviceInfo {
     public static async Task<DeviceInfo> LoadAsync(Guid deviceId, int displayMinutes, HomeDatabase db) {
         var lastSetTemp = await db.GetThermostatUserSetpointAsync(deviceId);
         var now = DateTime.UtcNow;
-        var states = (await DeviceStatesOverTime.LoadAsync(deviceId, displayMinutes, db)).States.Where(s => s.HasAllData).ToArray();
+        var states = (await DeviceStatesOverTime.LoadAsync(deviceId, displayMinutes, includeAwayData: true, db: db)).States.Where(s => s.HasAllData).ToArray();
         var minTime = states.Length > 0 ? states[0].Timestamp : now;
         return new DeviceInfo(deviceId) {
             Status = await db.GetOnlineDisplayStatusAsync(deviceId, db),

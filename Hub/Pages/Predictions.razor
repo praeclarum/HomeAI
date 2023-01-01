@@ -1,0 +1,66 @@
+@page "/predictions"
+
+@inject HomeDatabase db;
+
+<PageTitle>Predictions</PageTitle>
+
+<h1>Predictions</h1>
+
+@foreach (var chart in charts) {
+    <div class="chart">
+        <h4>@chart.Title</h4>
+        <StripChart Width="600" Height="200" Data=@chart.Data />
+    </div>
+}
+
+@code {
+
+    readonly List<PredictionChart> charts = new();
+
+    class PredictionChart
+    {
+        public string Title = "";
+        public (double X, double Y)[][] Data { get; set; } = Array.Empty<(double X, double Y)[]>();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        var devices = await db.GetDevicesAsync();
+
+        var now = DateTime.UtcNow;
+        var startOfDay = new DateTime(now.Year, now.Month, now.Day, 0, 0, 0, DateTimeKind.Utc);
+        var endOfDay = startOfDay.AddDays(1);
+        var numPredictions = 100;
+        var dt = (endOfDay - startOfDay).TotalSeconds / numPredictions;
+        var predictionTimes =
+            Enumerable.Range(0, numPredictions)
+                .Select(i => startOfDay.AddSeconds(i * dt))
+                .ToArray();
+
+        var ai = new Hub.AI.ThermostatAI();
+        var algos = new [] {
+            AI.AITrainingAlgorithm.LbfgsPoisson,
+            AI.AITrainingAlgorithm.FastTreeTweedie,
+        };
+
+        foreach (var d in devices) {
+            if (d.Name.StartsWith("Dev ")) continue;
+            foreach (var algo in algos) {
+                var predictions = await ai.PredictManyAsync(predictionTimes, algo, db, d.Id);
+                var chart = new PredictionChart {
+                    Title = $"{d.Name} - {algo}",
+                };
+                chart.Data = new[] {
+                    predictions
+                        .Select((p, i) =>
+                            ((double)i, (double)p.TargetCelsius))
+                        .ToArray(),
+                };
+                charts.Add(chart);
+                StateHasChanged();
+            }
+        }
+    }
+}

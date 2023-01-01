@@ -11,6 +11,8 @@ public class ThermostatAI
 {
     static readonly TimeSpan SetpointDuration = TimeSpan.FromHours(2.0);
 
+    const AITrainingAlgorithm DefaultAlgorithm = AITrainingAlgorithm.LbfgsPoisson;
+
     /// <summary>
     /// Gets the setpoint for the thermostat in Celsius.
     /// </summary>
@@ -38,11 +40,17 @@ public class ThermostatAI
 
     async Task<ThermostatPrediction> PredictAsync(HomeDatabase db, DeviceId id)
     {
+        var predictions = await PredictManyAsync(new[] { DateTime.UtcNow }, DefaultAlgorithm, db, id);
+        return predictions[0];
+    }
+
+    public async Task<ThermostatPrediction[]> PredictManyAsync(DateTime[] times, AITrainingAlgorithm algorithm, HomeDatabase db, DeviceId id)
+    {
         // Console.WriteLine("Training model...");
 
         MLContext mlContext = new MLContext(seed: 0);
 
-        var states = await DeviceStatesOverTime.LoadAsync(id, 60 * 24 * 365, db);
+        var states = await DeviceStatesOverTime.LoadAsync(id, 60 * 24 * 365, includeAwayData: false, db: db);
 
         // Console.WriteLine($"Training on {states.States.Length} data points.");
 
@@ -53,11 +61,11 @@ public class ThermostatAI
         var data = dataQ.ToArray();
         if (data.Length == 0)
         {
-            return new ThermostatPrediction { TargetCelsius = (float)67.0.FahrenheitToCelsius() };
+            return new[] { new ThermostatPrediction { TargetCelsius = (float)67.0.FahrenheitToCelsius() } };
         }
         else if (data.Length == 1)
         {
-            return new ThermostatPrediction { TargetCelsius = data[0].TargetCelsius };
+            return new[] { new ThermostatPrediction { TargetCelsius = data[0].TargetCelsius } };
         }
         // foreach (var d in data) {
         //     d.Dump();
@@ -74,23 +82,41 @@ public class ThermostatAI
             DataFrameColumn.Create("TargetCelsius", data.Select(d => d.TargetCelsius)),
         };
         var dataView = new DataFrame(columns);
-        var pipeline =
+        
+        var pipelineHead =
             mlContext.Transforms.CopyColumns(outputColumnName: "Label", inputColumnName:"TargetCelsius")
             // .Append(mlContext.Transforms.Categorical.OneHotEncoding(outputColumnName: "DayOfWeekEncoded", inputColumnName:"DayOfWeek"))
             .Append(mlContext.Transforms.Concatenate("Features",
                 "CosDayOfWeek", "SinDayOfWeek",
                 "CosDayOfYear", "SinDayOfYear",
-                "CosHour", "SinHour"))
-            .Append(mlContext.Regression.Trainers.LbfgsPoissonRegression());
-        var model = pipeline.Fit(dataView);
+                "CosHour", "SinHour"));
+        ITransformer model = algorithm switch
+        {
+            AITrainingAlgorithm.LbfgsPoisson =>
+                pipelineHead.Append (mlContext.Regression.Trainers.LbfgsPoissonRegression()).Fit(dataView),
+            AITrainingAlgorithm.FastTreeTweedie =>
+                pipelineHead.Append (mlContext.Regression.Trainers.FastTreeTweedie()).Fit(dataView),
+            _ =>
+                throw new NotSupportedException(algorithm.ToString())
+        };
 
         // Predict
         var predictionFunction = mlContext.Model.CreatePredictionEngine<ThermostatData, ThermostatPrediction>(model);
-        var sample = new ThermostatData(DateTime.UtcNow, 0);
-        var prediction = predictionFunction.Predict(sample);
-
-        return prediction;
+        var predictions = new ThermostatPrediction[times.Length];
+        for (int i = 0; i < times.Length; i++)
+        {
+            var sample = new ThermostatData(times[i], 0);
+            var prediction = predictionFunction.Predict(sample);
+            predictions[i] = prediction;
+        }
+        return predictions;
     }
+}
+
+public enum AITrainingAlgorithm
+{
+    LbfgsPoisson,
+    FastTreeTweedie,
 }
 
 public class ThermostatData

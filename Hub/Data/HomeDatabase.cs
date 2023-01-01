@@ -121,10 +121,18 @@ public class HomeDatabase
         return e;
     }
 
-    public Task<DataLogEvent[]> GetEventsAsync(DeviceId id, DateTime start, DateTime end)
+    public Task<DataLogEvent[]> GetDeviceEventsAsync(DeviceId id, DateTime start, DateTime end)
     {
         return _database.Table<DataLogEvent>()
             .Where(x => x.DeviceId == id && x.Timestamp >= start && x.Timestamp <= end)
+            .OrderBy(x => x.Timestamp)
+            .ToArrayAsync();
+    }
+
+    public Task<OccupancyEvent[]> GetOccupancyEventsAsync(DateTime start, DateTime end)
+    {
+        return _database.Table<OccupancyEvent>()
+            .Where(x => x.Timestamp >= start && x.Timestamp <= end)
             .OrderBy(x => x.Timestamp)
             .ToArrayAsync();
     }

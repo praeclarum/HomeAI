@@ -50,7 +50,7 @@ else
         {
             var lastSetTemp = await db.GetThermostatUserSetpointAsync(device.Id);
             var now = DateTime.UtcNow;
-            var states = (await DeviceStatesOverTime.LoadAsync(device.Id, displayMinutes, db)).States.Where(s => s.HasAllData).ToArray();
+            var states = (await DeviceStatesOverTime.LoadAsync(device.Id, displayMinutes, includeAwayData: true, db: db)).States.Where(s => s.HasAllData).ToArray();
             var minTime = states.Length > 0 ? states[0].Timestamp : now;
             deviceStatus[device.Id] = await DeviceInfo.LoadAsync(device.Id, displayMinutes, db);
             StateHasChanged();

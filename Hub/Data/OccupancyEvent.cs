@@ -2,7 +2,7 @@ using SQLite;
 
 namespace Hub.Data;
 
-public class OccupancyEvent
+public class OccupancyEvent : ILoggedEvent
 {
     [PrimaryKey, AutoIncrement]
     public int Id { get; set; }
