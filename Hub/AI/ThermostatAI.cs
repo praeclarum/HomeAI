@@ -165,7 +165,7 @@ public class ThermostatData
     {
         var dayOfWeek = (int)timestamp.DayOfWeek;
         var dayOfYear = timestamp.DayOfYear;
-        var hour = timestamp.Hour;
+        var hour = timestamp.Hour + timestamp.Minute / 60.0f;
         CosDayOfWeek = MathF.Cos(dayOfWeek * 2 * MathF.PI / 7);
         SinDayOfWeek = MathF.Sin(dayOfWeek * 2 * MathF.PI / 7);
         CosDayOfYear = MathF.Cos(dayOfYear * 2 * MathF.PI / 365);
