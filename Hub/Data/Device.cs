@@ -79,7 +79,8 @@ public class DeviceStatesOverTime
                 {
                     aiSetpoint = e.Value;
                 }
-                var shouldAdd = houseOccupied || includeAwayData;
+                var shouldAdd = (e.EventType == LogEventType.AITemperatureSetting) &&
+                    (houseOccupied || includeAwayData);
                 if (shouldAdd) {
                     states.Add(new DeviceState
                     {
