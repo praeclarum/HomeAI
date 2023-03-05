@@ -70,6 +70,7 @@ void loop() {
     }
     else {
       Serial.println("NETWORK ERROR, RESTARTING AFTER A MINUTE...");
+      digitalWrite(HEATER_PIN, LOW);
       displayError();
       delay(60000);
       ESP.restart();
