@@ -10,7 +10,7 @@ void thermometerSetup() {
   dht.begin();
 }
 
-float thermometerReadCelsius() {
-  float celsius = dht.readTemperature();
-  return celsius;
+bool thermometerReadCelsius(float &celsius) {
+  celsius = dht.readTemperature();
+  return !isnan(celsius);
 }

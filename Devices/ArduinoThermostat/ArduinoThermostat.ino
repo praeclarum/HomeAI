@@ -37,18 +37,20 @@ void loop() {
 
   const bool shouldRead = lastReadMillis == 0 || ((nowMillis - lastReadMillis) > 5 * 60 * 1000);
 
-  const float currentCelsius = thermometerReadCelsius();
-  lastCelsius = currentCelsius;
+  float newCelsius = 0;
+  if (thermometerReadCelsius(newCelsius)) {
+    lastCelsius = newCelsius;
+  }
 
   if (shouldRead) {
     Serial.print("READ ");
-    Serial.print(currentCelsius);
+    Serial.print(lastCelsius);
     Serial.print("C ");
-    Serial.print(currentCelsius * 9.0f / 5.0f + 32.0f);
+    Serial.print(lastCelsius * 9.0f / 5.0f + 32.0f);
     Serial.println("F");
 
     bool readSucceeded = false;
-    if (apiPostTemperature(currentCelsius)) {
+    if (apiPostTemperature(lastCelsius)) {
       float targetCelsius = 0.0;
       if (apiGetTargetTemperature(&targetCelsius)) {
         lastTargetCelsius = targetCelsius;
@@ -58,7 +60,7 @@ void loop() {
         if (apiPostTargetTemperature(targetCelsius)) {
           readSucceeded = true;
           knobSetFahrenheit(targetCelsius * 9.0f/5.0f + 32.0f);
-          control(currentCelsius, targetCelsius);
+          control(lastCelsius, targetCelsius);
         }
       }
     }
@@ -67,9 +69,9 @@ void loop() {
       lastReadMillis = millis();
     }
     else {
-      Serial.println("NETWORK ERROR, RESTARTING AFTER DELAY...");
+      Serial.println("NETWORK ERROR, RESTARTING AFTER A MINUTE...");
       displayError();
-      delay(50000);
+      delay(60000);
       ESP.restart();
     }
   }
@@ -86,7 +88,7 @@ void loop() {
       manuallySetTemp = true;
       manuallySetTempC = targetCelsius;
       manuallySetTempMillis = millis();
-      displayUpdate(currentCelsius, manuallySetTempC, true);
+      displayUpdate(lastCelsius, manuallySetTempC, true);
     }
   }
 
@@ -98,12 +100,12 @@ void loop() {
     lastTargetCelsius = manuallySetTempC;
     if (apiPostManualTemperature(manuallySetTempC)) {
       if (apiPostTargetTemperature(manuallySetTempC)) {
-        control(currentCelsius, manuallySetTempC);
+        control(lastCelsius, manuallySetTempC);
       }
     }
   }
 
-  displayUpdate(currentCelsius, manuallySetTemp ? manuallySetTempC : lastTargetCelsius, manuallySetTemp || isHeaterOn);
+  displayUpdate(lastCelsius, manuallySetTemp ? manuallySetTempC : lastTargetCelsius, manuallySetTemp || isHeaterOn);
 
   delay(100);
 }

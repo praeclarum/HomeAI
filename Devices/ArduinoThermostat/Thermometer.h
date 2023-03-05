@@ -1,4 +1,4 @@
 #pragma once
 
 void thermometerSetup();
-float thermometerReadCelsius();
+bool thermometerReadCelsius(float &celsius);
