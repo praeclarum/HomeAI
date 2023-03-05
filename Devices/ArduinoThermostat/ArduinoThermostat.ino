@@ -47,6 +47,7 @@ void loop() {
     Serial.print(currentCelsius * 9.0f / 5.0f + 32.0f);
     Serial.println("F");
 
+    bool readSucceeded = false;
     if (apiPostTemperature(currentCelsius)) {
       float targetCelsius = 0.0;
       if (apiGetTargetTemperature(&targetCelsius)) {
@@ -55,13 +56,22 @@ void loop() {
         Serial.print(targetCelsius);
         Serial.println("C ");
         if (apiPostTargetTemperature(targetCelsius)) {
+          readSucceeded = true;
           knobSetFahrenheit(targetCelsius * 9.0f/5.0f + 32.0f);
           control(currentCelsius, targetCelsius);
         }
       }
     }
 
-    lastReadMillis = millis();
+    if (readSucceeded) {
+      lastReadMillis = millis();
+    }
+    else {
+      Serial.println("NETWORK ERROR, RESTARTING AFTER DELAY...");
+      displayError();
+      delay(50000);
+      ESP.restart();
+    }
   }
 
   if (knobChanged()) {

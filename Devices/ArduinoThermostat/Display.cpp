@@ -25,4 +25,8 @@ void displayUpdate(float currentC, float targetC, bool showTarget)
   } 
 }
 
+void displayError()
+{
+  tm.showNumberHexEx(0xE);  
+}
 

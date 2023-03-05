@@ -183,6 +183,7 @@ static bool apiPostValue(int eventType, float value)
       "\"value\":\"" + String(value, 4) + "\""
       "}";
     // Serial.println(req);
+    https.setTimeout(20000);
     int httpCode = https.POST(req);
     Serial.println("STATUS CODE: " + String(httpCode));
     if (httpCode > 0) {
