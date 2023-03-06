@@ -3,6 +3,7 @@
 #include "State.h"
 #include <AiEsp32RotaryEncoder.h>
 
+static StateChangedEvent stateChanged(KNOB_TASK_ID);
 
 #define ROTARY_ENCODER_VCC_PIN -1 /* 27 put -1 of Rotary encoder Vcc is connected directly to 3,3V; else you can use declared output pin for powering rotary encoder */
 
@@ -29,11 +30,11 @@ static void knobSetup() {
 	rotaryEncoder.setAcceleration(0); //or set the value - larger number = more accelearation; 0 or 1 means disabled acceleration
 }
 
-static long knobReadFahrenheit() {
-    return rotaryEncoder.readEncoder();
+static int knobReadFahrenheit() {
+    return (int)min(90l, max(32l, rotaryEncoder.readEncoder()));
 }
 
-static void knobSetFahrenheit(float fahrenheit) {
+static void knobUpdateFahrenheit(float fahrenheit) {
     rotaryEncoder.setEncoderValue(long(fahrenheit + 0.5f));
 }
 
@@ -44,11 +45,15 @@ static void knobLoop() {
     Serial.print(targetFahrenheit);
     Serial.println("F");
     auto now = millis();
-    updateState([targetFahrenheit, now](State &x) {
+    updateState(KNOB_TASK_ID, [targetFahrenheit, now](State &x) {
       x.knobChanging = true;
-      x.knobSetFahrenheit = (int)(min(90l, max(32l, targetFahrenheit)));
+      x.knobSetFahrenheit = targetFahrenheit;
       x.knobChangeMillis = now;
     });
+  }
+  if (stateChanged.wait(10)) {
+    Serial.println("KNOB SAW STATE CHANGE");
+    knobUpdateFahrenheit(readState().targetFahrenheit);
   }
   vTaskDelay(10 / portTICK_PERIOD_MS);
 }
@@ -61,6 +66,7 @@ static void knobTask(void *arg) {
 }
 
 void knobStart() {
+  subscribeToStateChanges(&stateChanged);
   xTaskCreatePinnedToCore(
     knobTask
     ,  "Knob"

@@ -13,6 +13,8 @@
 
 #define HEATER_PIN 5
 
-// TASK PRIORITIES
+// TASKS
+
+#define KNOB_TASK_ID 1
 
 #define TASK_PRIORITY 2

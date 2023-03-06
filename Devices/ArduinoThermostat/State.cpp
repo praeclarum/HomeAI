@@ -18,7 +18,11 @@ State readState() {
   return copiedState;
 }
 
-void updateState(std::function<void(State&)> updater) {
+void subscribeToStateChanges(StateChangedEvent *event) {
+  
+}
+
+void updateState(int taskId, std::function<void(State&)> updater) {
   unsigned long waitMillis = 100l;
   xSemaphoreTake(sharedStateMutex, waitMillis / portTICK_PERIOD_MS);
   updater(sharedState);
