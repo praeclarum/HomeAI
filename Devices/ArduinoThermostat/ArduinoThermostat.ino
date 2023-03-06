@@ -1,3 +1,4 @@
+#include "State.h"
 #include "Api.h"
 #include "Config.h"
 #include "Thermometer.h"
@@ -22,12 +23,14 @@ void setup() {
   Serial.println();
   Serial.println();
 
+  stateSetup();
+
   pinMode(HEATER_PIN, OUTPUT);
   digitalWrite(HEATER_PIN, isHeaterOn ? HIGH : LOW);
 
   displaySetup();
   thermometerSetup();
-  knobSetup();
+  knobStart();
   apiSetup();
 }
 
@@ -59,7 +62,7 @@ void loop() {
         Serial.println("C ");
         if (apiPostTargetTemperature(targetCelsius)) {
           readSucceeded = true;
-          knobSetFahrenheit(targetCelsius * 9.0f/5.0f + 32.0f);
+          // knobSetFahrenheit(targetCelsius * 9.0f/5.0f + 32.0f);
           control(lastCelsius, targetCelsius);
         }
       }
@@ -74,22 +77,6 @@ void loop() {
       displayError();
       delay(60000);
       ESP.restart();
-    }
-  }
-
-  if (knobChanged()) {
-    const auto targetFahrenheit = knobReadFahrenheit();
-    const auto targetCelsius = (targetFahrenheit - 32.0f) * 5.0f / 9.0f;
-    if (manuallySetTemp || fabs(targetCelsius - lastTargetCelsius) >= 5.0f/9.0f/2.0f) {
-      Serial.print("KNOB ");
-      Serial.print(targetFahrenheit);
-      Serial.print("F (");
-      Serial.print(targetCelsius);
-      Serial.println("C)");
-      manuallySetTemp = true;
-      manuallySetTempC = targetCelsius;
-      manuallySetTempMillis = millis();
-      displayUpdate(lastCelsius, manuallySetTempC, true);
     }
   }
 
