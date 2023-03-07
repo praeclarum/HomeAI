@@ -1,7 +1,7 @@
 #include "Knob.h"
 #include "Config.h"
 #include "State.h"
-#include "Api.h"
+#include "Server.h"
 #include <AiEsp32RotaryEncoder.h>
 
 static StateChangedEvent stateChanged(KNOB_TASK_ID);
@@ -69,10 +69,8 @@ static void knobLoop() {
     Serial.print("Committing manual setpoint: ");
     Serial.print(manuallySetTempC);
     Serial.println("C");
-    vTaskDelay(1000 / portTICK_RATE_MS);
-    if (apiPostManualTemperature(manuallySetTempC)) {
-      vTaskDelay(1000 / portTICK_RATE_MS);
-      if (apiPostTargetTemperature(manuallySetTempC)) {
+    if (serverPostManualTemperatureAsync(manuallySetTempC)) {
+      if (serverPostTargetTemperatureAsync(manuallySetTempC)) {
       }
     }
   }
@@ -98,7 +96,7 @@ void knobStart() {
   xTaskCreatePinnedToCore(
     knobTask
     ,  "Knob"
-    ,  8*1024  // Stack size
+    ,  16*1024  // Stack size
     ,  nullptr // Arg
     ,  TASK_PRIORITY  // Priority
     ,  NULL 

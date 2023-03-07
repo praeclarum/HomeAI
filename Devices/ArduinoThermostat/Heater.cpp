@@ -2,7 +2,7 @@
 #include "Heater.h"
 #include "Config.h"
 #include "State.h"
-#include "Api.h"
+#include "Server.h"
 
 static StateChangedEvent stateChanged(HEATER_TASK_ID);
 
@@ -42,7 +42,7 @@ static void control() {
     else {
       Serial.println("HEATER OFF");
     }
-    apiPostHeaterOn(isHeaterOn);
+    serverPostHeaterOnAsync(isHeaterOn);
   }
 }
 

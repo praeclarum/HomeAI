@@ -4,17 +4,38 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
 
 #include "Heater.h"
 #include "Config.h"
 #include "State.h"
 #include "Server.h"
 
-#include "freertos/FreeRTOS.h"
 #include "Secrets.h"
 
+enum EventType {
+  TEMP_EVENT        =0,
+  MANUAL_TEMP_EVENT =1,
+  TARGET_TEMP_EVENT =2,
+  HEATER_ON_EVENT   =3,
+};
+
+static QueueHandle_t postValueQueue = 0;
 
 // static StateChangedEvent stateChanged(HEATER_TASK_ID);
+
+static WiFiMulti WiFiMulti;
+
+static bool connected = false;
+
+struct PostValueData {
+  EventType eventType;
+  float value;
+};
+
+static bool apiPostValue(EventType eventType, float value);
+
 
 
 // This is GandiStandardSSLCA2.pem, the root Certificate Authority that signed 
@@ -75,12 +96,9 @@ static void setClock() {
   Serial.println(asctime(&timeinfo));
 }
 
-
-static WiFiMulti WiFiMulti;
-
-static bool connected = false;
-
 static void serverSetup() {
+
+  postValueQueue = xQueueCreate(16, sizeof(PostValueData));
 
   WiFi.mode(WIFI_STA);
   WiFiMulti.addAP(WIFI_NAME, WIFI_PASSWORD);
@@ -164,7 +182,7 @@ static bool apiGetTargetTemperature(float *targetCelsius)
   return result;
 }
 
-static bool apiPostValue(int eventType, float value)
+static bool apiPostValue(EventType eventType, float value)
 {
   if (!connected) return false;
   WiFiClientSecure client;//new BearSSL::WiFiClientSecure);
@@ -210,24 +228,33 @@ static bool apiPostValue(int eventType, float value)
   return false;
 }
 
-bool serverPostTemperature(float celsius)
+static bool apiPostValueAsync(EventType eventType, float value)
 {
-  return apiPostValue(0, celsius);
+  Serial.printf("QUEUE EVENT #%d VALUE %g\n", eventType, value); 
+  PostValueData data;
+  data.eventType = eventType;
+  data.value = value;
+  return xQueueSend(postValueQueue, &data, 100 / portTICK_RATE_MS) == pdTRUE;
 }
 
-bool serverPostManualTemperature(float celsius)
+bool serverPostTemperatureAsync(float celsius)
 {
-  return apiPostValue(1, celsius);
+  return apiPostValueAsync(TEMP_EVENT, celsius);
 }
 
-bool serverPostTargetTemperature(float celsius)
+bool serverPostManualTemperatureAsync(float celsius)
 {
-  return apiPostValue(2, celsius);
+  return apiPostValueAsync(MANUAL_TEMP_EVENT, celsius);
 }
 
-bool serverPostHeaterOn(bool on)
+bool serverPostTargetTemperatureAsync(float celsius)
 {
-  return apiPostValue(3, on ? 1.0f : 0.0f);
+  return apiPostValueAsync(TARGET_TEMP_EVENT, celsius);
+}
+
+bool serverPostHeaterOnAsync(bool on)
+{
+  return apiPostValueAsync(HEATER_ON_EVENT, on ? 1.0f : 0.0f);
 }
 
 static unsigned long lastReadMillis = 0;
@@ -250,7 +277,7 @@ static void serverLoop()
     Serial.println("F");
 
     bool readSucceeded = false;
-    if (serverPostTemperature(lastCelsius)) {
+    if (apiPostValue(TEMP_EVENT, lastCelsius)) {
       vTaskDelay(1000 / portTICK_RATE_MS);
       float targetCelsius = 0.0;
       if (apiGetTargetTemperature(&targetCelsius)) {
@@ -261,7 +288,7 @@ static void serverLoop()
         Serial.print(targetCelsius);
         Serial.println("C ");
         vTaskDelay(1000 / portTICK_RATE_MS);
-        if (serverPostTargetTemperature(targetCelsius)) {
+        if (apiPostValue(TARGET_TEMP_EVENT, targetCelsius)) {
           readSucceeded = true;
         }
       }
@@ -277,9 +304,14 @@ static void serverLoop()
       Serial.println("NETWORK ERROR, RESTARTING AFTER A MINUTE...");
       digitalWrite(HEATER_PIN, LOW);
       // displayError();
-      delay(60000);
+      vTaskDelay(60000 / portTICK_PERIOD_MS);
       ESP.restart();
     }
+  }
+
+  PostValueData postValueData;
+  while (xQueueReceive(postValueQueue, &postValueData, 2000 / portTICK_RATE_MS)) {
+    apiPostValue(postValueData.eventType, postValueData.value);    
   }
 
   // if (stateChanged.wait(7000)) {
@@ -299,7 +331,7 @@ void serverStart() {
   xTaskCreatePinnedToCore(
     serverTask
     ,  "Server"
-    ,  8*1024  // Stack size
+    ,  16*1024  // Stack size
     ,  nullptr // Arg
     ,  TASK_PRIORITY  // Priority
     ,  NULL 

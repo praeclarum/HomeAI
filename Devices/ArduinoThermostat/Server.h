@@ -2,7 +2,7 @@
 
 void serverStart();
 
-bool serverPostTemperature(float celsius);
-bool serverPostManualTemperature(float celsius);
-bool serverPostTargetTemperature(float celsius);
-bool serverPostHeaterOn(bool on);
+bool serverPostTemperatureAsync(float celsius);
+bool serverPostManualTemperatureAsync(float celsius);
+bool serverPostTargetTemperatureAsync(float celsius);
+bool serverPostHeaterOnAsync(bool on);
