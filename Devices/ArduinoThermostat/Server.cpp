@@ -1,23 +1,26 @@
-#include "freertos/FreeRTOS.h"
-#include "Api.h"
-#include "Secrets.h"
-
 #include <Arduino.h>
-
 #include <WiFi.h>
 #include <WiFiMulti.h>
-
 #include <HTTPClient.h>
-
 #include <WiFiClientSecure.h>
-
 #include <ArduinoJson.h>
+
+#include "Heater.h"
+#include "Config.h"
+#include "State.h"
+#include "Server.h"
+
+#include "freertos/FreeRTOS.h"
+#include "Secrets.h"
+
+
+// static StateChangedEvent stateChanged(HEATER_TASK_ID);
 
 
 // This is GandiStandardSSLCA2.pem, the root Certificate Authority that signed 
 // the server certifcate for the demo server https://jigsaw.w3.org in this
 // example. This certificate is valid until Sep 11 23:59:59 2024 GMT
-const char* rootCACertificate = \
+static const char* rootCACertificate = \
 "-----BEGIN CERTIFICATE-----\n" \
 "MIIF6TCCA9GgAwIBAgIQBeTcO5Q4qzuFl8umoZhQ4zANBgkqhkiG9w0BAQwFADCB\n" \
 "iDELMAkGA1UEBhMCVVMxEzARBgNVBAgTCk5ldyBKZXJzZXkxFDASBgNVBAcTC0pl\n" \
@@ -55,23 +58,21 @@ const char* rootCACertificate = \
 
 // Not sure if WiFiClientSecure checks the validity date of the certificate. 
 // Setting clock just to be sure...
-void setClock() {
+static void setClock() {
   configTime(0, 0, "pool.ntp.org");
-
-  Serial.print(F("Waiting for NTP time sync: "));
+  
   time_t nowSecs = time(nullptr);
   while (nowSecs < 8 * 3600 * 2) {
-    delay(1000);
-    Serial.print(F("."));
+    Serial.println(F("Waiting for NTP time sync..."));
+    vTaskDelay(1000 / portTICK_RATE_MS);
     yield();
     nowSecs = time(nullptr);
   }
 
-  Serial.println();
   struct tm timeinfo;
   gmtime_r(&nowSecs, &timeinfo);
   Serial.print(F("Current time: "));
-  Serial.print(asctime(&timeinfo));
+  Serial.println(asctime(&timeinfo));
 }
 
 
@@ -79,24 +80,23 @@ static WiFiMulti WiFiMulti;
 
 static bool connected = false;
 
-void apiSetup() {
+static void serverSetup() {
 
   WiFi.mode(WIFI_STA);
   WiFiMulti.addAP(WIFI_NAME, WIFI_PASSWORD);
 
-  // wait for WiFi connection
-  Serial.print("Waiting for WiFi to connect...");
+  // Wait for WiFi connection
   while ((WiFiMulti.run() != WL_CONNECTED)) {
-    Serial.print(".");
+    Serial.println("Waiting for WiFi to connect...");
     vTaskDelay(1000 / portTICK_RATE_MS);
   }
-  Serial.println(" connected");
+  Serial.println("WiFi connected!");
 
   setClock();
   connected = true;
 }
 
-bool apiGetDevices()
+static bool apiGetDevices()
 {
   if (!connected) return false;
   WiFiClientSecure client;//new BearSSL::WiFiClientSecure);
@@ -123,7 +123,7 @@ bool apiGetDevices()
   return false;
 }
 
-bool apiGetTargetTemperature(float *targetCelsius)
+static bool apiGetTargetTemperature(float *targetCelsius)
 {
   if (!connected) return false;
   DynamicJsonDocument doc(1024);
@@ -210,22 +210,98 @@ static bool apiPostValue(int eventType, float value)
   return false;
 }
 
-bool apiPostTemperature(float celsius)
+bool serverPostTemperature(float celsius)
 {
   return apiPostValue(0, celsius);
 }
 
-bool apiPostManualTemperature(float celsius)
+bool serverPostManualTemperature(float celsius)
 {
   return apiPostValue(1, celsius);
 }
 
-bool apiPostTargetTemperature(float celsius)
+bool serverPostTargetTemperature(float celsius)
 {
   return apiPostValue(2, celsius);
 }
 
-bool apiPostHeaterOn(bool on)
+bool serverPostHeaterOn(bool on)
 {
   return apiPostValue(3, on ? 1.0f : 0.0f);
+}
+
+static unsigned long lastReadMillis = 0;
+static float lastCelsius = 0;
+
+static void serverLoop()
+{
+  const auto nowMillis = millis();
+
+  const bool shouldRead = lastReadMillis == 0 || ((nowMillis - lastReadMillis) > 5 * 60 * 1000);
+
+  const State state = readState();
+  lastCelsius = state.thermometerCelsius;
+
+  if (lastCelsius > 1 && shouldRead) {
+    Serial.print("READ ");
+    Serial.print(lastCelsius);
+    Serial.print("C ");
+    Serial.print(lastCelsius * 9.0f / 5.0f + 32.0f);
+    Serial.println("F");
+
+    bool readSucceeded = false;
+    if (serverPostTemperature(lastCelsius)) {
+      vTaskDelay(1000 / portTICK_RATE_MS);
+      float targetCelsius = 0.0;
+      if (apiGetTargetTemperature(&targetCelsius)) {
+        updateState(SERVER_TASK_ID, [targetCelsius](State &x) {
+          x.targetCelsius = targetCelsius;
+        });
+        Serial.print("TARGET ");
+        Serial.print(targetCelsius);
+        Serial.println("C ");
+        vTaskDelay(1000 / portTICK_RATE_MS);
+        if (serverPostTargetTemperature(targetCelsius)) {
+          readSucceeded = true;
+        }
+      }
+    }
+
+    if (readSucceeded) {
+      lastReadMillis = millis();
+    }
+    else {
+      updateState(SERVER_TASK_ID, [](State &x) {
+        x.networkError = true;
+      });
+      Serial.println("NETWORK ERROR, RESTARTING AFTER A MINUTE...");
+      digitalWrite(HEATER_PIN, LOW);
+      // displayError();
+      delay(60000);
+      ESP.restart();
+    }
+  }
+
+  // if (stateChanged.wait(7000)) {
+  //   //Serial.println("SERVER SAW STATE CHANGE");
+  // }
+}
+
+static void serverTask(void *arg) {
+  serverSetup();
+  for (;;) {
+    serverLoop();
+  }  
+}
+
+void serverStart() {
+  // subscribeToStateChanges(&stateChanged);
+  xTaskCreatePinnedToCore(
+    serverTask
+    ,  "Server"
+    ,  8*1024  // Stack size
+    ,  nullptr // Arg
+    ,  TASK_PRIORITY  // Priority
+    ,  NULL 
+    ,  ARDUINO_RUNNING_CORE);
 }

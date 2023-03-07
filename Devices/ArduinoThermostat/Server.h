@@ -1,8 +1,8 @@
 #pragma once
 
-void apiStart();
+void serverStart();
 
-bool apiPostTemperature(float celsius);
-bool apiPostManualTemperature(float celsius);
-bool apiPostTargetTemperature(float celsius);
-bool apiPostHeaterOn(bool on);
+bool serverPostTemperature(float celsius);
+bool serverPostManualTemperature(float celsius);
+bool serverPostTargetTemperature(float celsius);
+bool serverPostHeaterOn(bool on);
