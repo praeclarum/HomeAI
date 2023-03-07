@@ -7,7 +7,6 @@
 
 #define HEATER_HYSTERESIS_CELSIUS (1.0f * 5.0f/9.0f)
 
-static bool isHeaterOn = false;
 static unsigned long lastReadMillis = 0;
 static float lastCelsius = 0;
 
@@ -25,7 +24,7 @@ void setup() {
   stateSetup();
 
   pinMode(HEATER_PIN, OUTPUT);
-  digitalWrite(HEATER_PIN, isHeaterOn ? HIGH : LOW);
+  digitalWrite(HEATER_PIN, LOW);
 
   displayStart();
   thermometerStart();
@@ -105,7 +104,7 @@ void control()
   bool heaterShouldBeOn = false;
 
   if (currentCelsius > 1.0f) {
-    if (isHeaterOn) {
+    if (state.isHeaterOn) {
       // Turn off if current temp greater than setpoint plus hysteresis
       const auto heaterShouldBeOff = currentCelsius > targetCelsius + HEATER_HYSTERESIS_CELSIUS;
       heaterShouldBeOn = !heaterShouldBeOff;
@@ -115,7 +114,7 @@ void control()
       heaterShouldBeOn = currentCelsius < targetCelsius - HEATER_HYSTERESIS_CELSIUS;
     }
   }
-  isHeaterOn = heaterShouldBeOn;
+  auto isHeaterOn = heaterShouldBeOn;
   digitalWrite(HEATER_PIN, isHeaterOn ? HIGH : LOW);
   updateState(CONTROL_TASK_ID, [isHeaterOn](State &x) {
     x.isHeaterOn = isHeaterOn;
