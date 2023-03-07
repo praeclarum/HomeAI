@@ -4,8 +4,7 @@
 #include "Thermometer.h"
 #include "Knob.h"
 #include "Display.h"
-
-#define HEATER_HYSTERESIS_CELSIUS (1.0f * 5.0f/9.0f)
+#include "Heater.h"
 
 static unsigned long lastReadMillis = 0;
 static float lastCelsius = 0;
@@ -25,6 +24,7 @@ void setup() {
 
   pinMode(HEATER_PIN, OUTPUT);
   digitalWrite(HEATER_PIN, LOW);
+  heaterStart();
 
   displayStart();
   thermometerStart();
@@ -63,7 +63,6 @@ void loop() {
         Serial.println("C ");
         if (apiPostTargetTemperature(targetCelsius)) {
           readSucceeded = true;
-          control();
         }
       }
     }
@@ -87,44 +86,9 @@ void loop() {
     manuallySetTemp = false;
     if (apiPostManualTemperature(manuallySetTempC)) {
       if (apiPostTargetTemperature(manuallySetTempC)) {
-        control();
       }
     }
   }
 
   vTaskDelay(1000 / portTICK_RATE_MS);
 }
-
-void control()
-{
-  const State state = readState();
-  const float currentCelsius = state.thermometerCelsius;
-  const float targetCelsius = state.targetCelsius;
-
-  bool heaterShouldBeOn = false;
-
-  if (currentCelsius > 1.0f) {
-    if (state.isHeaterOn) {
-      // Turn off if current temp greater than setpoint plus hysteresis
-      const auto heaterShouldBeOff = currentCelsius > targetCelsius + HEATER_HYSTERESIS_CELSIUS;
-      heaterShouldBeOn = !heaterShouldBeOff;
-    }
-    else {
-      // Turn on if current temp is less then setpoint minus hysteresis
-      heaterShouldBeOn = currentCelsius < targetCelsius - HEATER_HYSTERESIS_CELSIUS;
-    }
-  }
-  auto isHeaterOn = heaterShouldBeOn;
-  digitalWrite(HEATER_PIN, isHeaterOn ? HIGH : LOW);
-  updateState(CONTROL_TASK_ID, [isHeaterOn](State &x) {
-    x.isHeaterOn = isHeaterOn;
-  });
-  if (isHeaterOn) {
-    Serial.println("HEATER ON");
-  }
-  else {
-    Serial.println("HEATER OFF");
-  }
-  apiPostHeaterOn(isHeaterOn);
-}
-

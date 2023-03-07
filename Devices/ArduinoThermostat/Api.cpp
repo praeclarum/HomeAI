@@ -1,3 +1,4 @@
+#include "freertos/FreeRTOS.h"
 #include "Api.h"
 #include "Secrets.h"
 
@@ -85,6 +86,7 @@ void apiSetup() {
   Serial.print("Waiting for WiFi to connect...");
   while ((WiFiMulti.run() != WL_CONNECTED)) {
     Serial.print(".");
+    vTaskDelay(1000 / portTICK_RATE_MS);
   }
   Serial.println(" connected");
 

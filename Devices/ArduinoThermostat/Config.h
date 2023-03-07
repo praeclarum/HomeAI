@@ -1,5 +1,9 @@
 #pragma once
 
+// CONTROL PARAMS
+
+#define HEATER_HYSTERESIS_CELSIUS (1.0f * 5.0f/9.0f)
+
 // PINS
 
 #define DISPLAY_CLK_PIN 32
@@ -17,7 +21,7 @@
 
 #define THERMOMETER_TASK_ID 1
 #define DISPLAY_TASK_ID     2
-#define CONTROL_TASK_ID     3
+#define HEATER_TASK_ID      3
 #define KNOB_TASK_ID        4
 #define SERVER_TASK_ID      5
 

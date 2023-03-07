@@ -26,14 +26,12 @@ static void thermometerLoop() {
   float sumC = 0.0f;
   int numReadings = 0;
   while (numReadings < readingsToAverage) {
+    vTaskDelay(1000 / portTICK_RATE_MS);
     // Serial.println("THERMO Read");
     float c = 0;
     if (thermometerReadCelsius(c)) {
       sumC += c;
       numReadings++;
-    }
-    if (numReadings < readingsToAverage) {
-      vTaskDelay(1000 / portTICK_RATE_MS);
     }
   }
   float celsius = sumC / readingsToAverage;
