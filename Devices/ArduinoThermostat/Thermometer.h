@@ -1,4 +1,4 @@
 #pragma once
 
-void thermometerSetup();
-bool thermometerReadCelsius(float &celsius);
+void thermometerStart();
+

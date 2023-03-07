@@ -1,19 +1,10 @@
-#include "Api.h"
+#include "State.h"
+#include "Server.h"
 #include "Config.h"
 #include "Thermometer.h"
 #include "Knob.h"
 #include "Display.h"
-
-#define HEATER_HYSTERESIS_CELSIUS (1.0f * 5.0f/9.0f)
-
-static bool isHeaterOn = false;
-static unsigned long lastReadMillis = 0;
-static float lastTargetCelsius = 0;
-static float lastCelsius = 0;
-
-static bool manuallySetTemp = false;
-static float manuallySetTempC = 0.0f;
-static unsigned long manuallySetTempMillis = 0;
+#include "Heater.h"
 
 void setup() {
 
@@ -22,118 +13,19 @@ void setup() {
   Serial.println();
   Serial.println();
 
-  pinMode(HEATER_PIN, OUTPUT);
-  digitalWrite(HEATER_PIN, isHeaterOn ? HIGH : LOW);
+  stateSetup();
 
-  displaySetup();
-  thermometerSetup();
-  knobSetup();
-  apiSetup();
+  serverStart();
+
+  pinMode(HEATER_PIN, OUTPUT);
+  digitalWrite(HEATER_PIN, LOW);
+  heaterStart();
+
+  displayStart();
+  thermometerStart();
+  knobStart();
 }
 
 void loop() {
-
-  const auto nowMillis = millis();
-
-  const bool shouldRead = lastReadMillis == 0 || ((nowMillis - lastReadMillis) > 5 * 60 * 1000);
-
-  float newCelsius = 0;
-  if (thermometerReadCelsius(newCelsius)) {
-    lastCelsius = newCelsius;
-  }
-
-  if (shouldRead) {
-    Serial.print("READ ");
-    Serial.print(lastCelsius);
-    Serial.print("C ");
-    Serial.print(lastCelsius * 9.0f / 5.0f + 32.0f);
-    Serial.println("F");
-
-    bool readSucceeded = false;
-    if (apiPostTemperature(lastCelsius)) {
-      float targetCelsius = 0.0;
-      if (apiGetTargetTemperature(&targetCelsius)) {
-        lastTargetCelsius = targetCelsius;
-        Serial.print("TARGET ");
-        Serial.print(targetCelsius);
-        Serial.println("C ");
-        if (apiPostTargetTemperature(targetCelsius)) {
-          readSucceeded = true;
-          knobSetFahrenheit(targetCelsius * 9.0f/5.0f + 32.0f);
-          control(lastCelsius, targetCelsius);
-        }
-      }
-    }
-
-    if (readSucceeded) {
-      lastReadMillis = millis();
-    }
-    else {
-      Serial.println("NETWORK ERROR, RESTARTING AFTER A MINUTE...");
-      digitalWrite(HEATER_PIN, LOW);
-      displayError();
-      delay(60000);
-      ESP.restart();
-    }
-  }
-
-  if (knobChanged()) {
-    const auto targetFahrenheit = knobReadFahrenheit();
-    const auto targetCelsius = (targetFahrenheit - 32.0f) * 5.0f / 9.0f;
-    if (manuallySetTemp || fabs(targetCelsius - lastTargetCelsius) >= 5.0f/9.0f/2.0f) {
-      Serial.print("KNOB ");
-      Serial.print(targetFahrenheit);
-      Serial.print("F (");
-      Serial.print(targetCelsius);
-      Serial.println("C)");
-      manuallySetTemp = true;
-      manuallySetTempC = targetCelsius;
-      manuallySetTempMillis = millis();
-      displayUpdate(lastCelsius, manuallySetTempC, true);
-    }
-  }
-
-  if (manuallySetTemp && (millis() - manuallySetTempMillis) > 3 * 1000) {
-    Serial.print("Committing manual setpoint: ");
-    Serial.print(manuallySetTempC);
-    Serial.println("C");
-    manuallySetTemp = false;
-    lastTargetCelsius = manuallySetTempC;
-    if (apiPostManualTemperature(manuallySetTempC)) {
-      if (apiPostTargetTemperature(manuallySetTempC)) {
-        control(lastCelsius, manuallySetTempC);
-      }
-    }
-  }
-
-  displayUpdate(lastCelsius, manuallySetTemp ? manuallySetTempC : lastTargetCelsius, manuallySetTemp || isHeaterOn);
-
-  delay(100);
+  vTaskDelay(1000 / portTICK_RATE_MS);
 }
-
-void control(float currentCelsius, float targetCelsius)
-{
-  bool heaterShouldBeOn = false;
-  
-  if (isHeaterOn) {
-    // Turn off if current temp greater than setpoint plus hysteresis
-    const auto heaterShouldBeOff = currentCelsius > targetCelsius + HEATER_HYSTERESIS_CELSIUS;
-    heaterShouldBeOn = !heaterShouldBeOff;
-  }
-  else {
-    // Turn on if current temp is less then setpoint minus hysteresis
-    heaterShouldBeOn = currentCelsius < targetCelsius - HEATER_HYSTERESIS_CELSIUS;
-  }
-  if (apiPostHeaterOn(heaterShouldBeOn)) {
-    isHeaterOn = heaterShouldBeOn;
-    // Actually turn on the relay
-    digitalWrite(HEATER_PIN, isHeaterOn ? HIGH : LOW);
-  }
-  if (isHeaterOn) {
-    Serial.println("HEATER ON");
-  }
-  else {
-    Serial.println("HEATER OFF");
-  }
-}
-
