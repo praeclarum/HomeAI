@@ -60,8 +60,11 @@ static void knobLoop() {
   }
   if (stateChanged.wait(10)) {
     // Serial.println("KNOB SAW STATE CHANGE");
-    ignoreNextChange = true;
-    knobUpdateFahrenheit(c2f(readState().targetCelsius));
+    const auto state = readState();
+    if (!state.knobChanging) {
+      ignoreNextChange = true;
+      knobUpdateFahrenheit(c2f(state.targetCelsius));
+    }
   }
 }
 

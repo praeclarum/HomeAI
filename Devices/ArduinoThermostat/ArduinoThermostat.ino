@@ -9,7 +9,6 @@
 
 static bool isHeaterOn = false;
 static unsigned long lastReadMillis = 0;
-static float lastTargetCelsius = 0;
 static float lastCelsius = 0;
 
 static bool manuallySetTemp = false;
@@ -57,7 +56,9 @@ void loop() {
     if (apiPostTemperature(lastCelsius)) {
       float targetCelsius = 0.0;
       if (apiGetTargetTemperature(&targetCelsius)) {
-        lastTargetCelsius = targetCelsius;
+        updateState(SERVER_TASK_ID, [targetCelsius](State &x) {
+          x.targetCelsius = targetCelsius;
+        });
         Serial.print("TARGET ");
         Serial.print(targetCelsius);
         Serial.println("C ");
@@ -85,7 +86,6 @@ void loop() {
     Serial.print(manuallySetTempC);
     Serial.println("C");
     manuallySetTemp = false;
-    lastTargetCelsius = manuallySetTempC;
     if (apiPostManualTemperature(manuallySetTempC)) {
       if (apiPostTargetTemperature(manuallySetTempC)) {
         control();
@@ -96,7 +96,7 @@ void loop() {
   vTaskDelay(1000 / portTICK_RATE_MS);
 }
 
-void control()//float currentCelsius, float targetCelsius)
+void control()
 {
   const State state = readState();
   const float currentCelsius = state.thermometerCelsius;

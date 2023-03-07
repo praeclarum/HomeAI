@@ -19,6 +19,7 @@
 #define DISPLAY_TASK_ID     2
 #define CONTROL_TASK_ID     3
 #define KNOB_TASK_ID        4
+#define SERVER_TASK_ID      5
 
 #define TASK_PRIORITY 2
 
