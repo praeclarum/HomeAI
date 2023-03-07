@@ -31,31 +31,38 @@ static void knobSetup() {
 }
 
 static int knobReadFahrenheit() {
-    return (int)min(90l, max(32l, rotaryEncoder.readEncoder()));
+    return (int)min(90l, max(50l, rotaryEncoder.readEncoder()));
 }
 
 static void knobUpdateFahrenheit(float fahrenheit) {
     rotaryEncoder.setEncoderValue(long(fahrenheit + 0.5f));
 }
 
+static bool ignoreNextChange = false;
+
 static void knobLoop() {
   if (rotaryEncoder.encoderChanged()) {
-    const auto targetFahrenheit = knobReadFahrenheit();
-    Serial.print("KNOB ");
-    Serial.print(targetFahrenheit);
-    Serial.println("F");
-    auto now = millis();
-    updateState(KNOB_TASK_ID, [targetFahrenheit, now](State &x) {
-      x.knobChanging = true;
-      x.knobSetFahrenheit = targetFahrenheit;
-      x.knobChangeMillis = now;
-    });
+    if (ignoreNextChange) {
+      ignoreNextChange = false;
+    }
+    else {
+      const auto targetFahrenheit = knobReadFahrenheit();
+      Serial.print("KNOB ");
+      Serial.print(targetFahrenheit);
+      Serial.println("F");
+      auto now = millis();
+      updateState(KNOB_TASK_ID, [targetFahrenheit, now](State &x) {
+        x.knobChanging = true;
+        x.knobSetFahrenheit = targetFahrenheit;
+        x.knobChangeMillis = now;
+      });
+    }
   }
   if (stateChanged.wait(10)) {
-    Serial.println("KNOB SAW STATE CHANGE");
-    knobUpdateFahrenheit(readState().targetFahrenheit);
+    // Serial.println("KNOB SAW STATE CHANGE");
+    ignoreNextChange = true;
+    knobUpdateFahrenheit(c2f(readState().targetCelsius));
   }
-  vTaskDelay(10 / portTICK_PERIOD_MS);
 }
 
 static void knobTask(void *arg) {

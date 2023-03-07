@@ -28,7 +28,7 @@ void setup() {
   pinMode(HEATER_PIN, OUTPUT);
   digitalWrite(HEATER_PIN, isHeaterOn ? HIGH : LOW);
 
-  displaySetup();
+  displayStart();
   thermometerStart();
   knobStart();
   apiSetup();
@@ -63,8 +63,7 @@ void loop() {
         Serial.println("C ");
         if (apiPostTargetTemperature(targetCelsius)) {
           readSucceeded = true;
-          // knobSetFahrenheit(targetCelsius * 9.0f/5.0f + 32.0f);
-          control(lastCelsius, targetCelsius);
+          control();
         }
       }
     }
@@ -75,7 +74,7 @@ void loop() {
     else {
       Serial.println("NETWORK ERROR, RESTARTING AFTER A MINUTE...");
       digitalWrite(HEATER_PIN, LOW);
-      displayError();
+      // displayError();
       delay(60000);
       ESP.restart();
     }
@@ -89,39 +88,44 @@ void loop() {
     lastTargetCelsius = manuallySetTempC;
     if (apiPostManualTemperature(manuallySetTempC)) {
       if (apiPostTargetTemperature(manuallySetTempC)) {
-        control(lastCelsius, manuallySetTempC);
+        control();
       }
     }
   }
 
-  displayUpdate(lastCelsius, manuallySetTemp ? manuallySetTempC : lastTargetCelsius, manuallySetTemp || isHeaterOn);
-
-  vTaskDelay(100 / portTICK_RATE_MS);
+  vTaskDelay(1000 / portTICK_RATE_MS);
 }
 
-void control(float currentCelsius, float targetCelsius)
+void control()//float currentCelsius, float targetCelsius)
 {
+  const State state = readState();
+  const float currentCelsius = state.thermometerCelsius;
+  const float targetCelsius = state.targetCelsius;
+
   bool heaterShouldBeOn = false;
-  
-  if (isHeaterOn) {
-    // Turn off if current temp greater than setpoint plus hysteresis
-    const auto heaterShouldBeOff = currentCelsius > targetCelsius + HEATER_HYSTERESIS_CELSIUS;
-    heaterShouldBeOn = !heaterShouldBeOff;
+
+  if (currentCelsius > 1.0f) {
+    if (isHeaterOn) {
+      // Turn off if current temp greater than setpoint plus hysteresis
+      const auto heaterShouldBeOff = currentCelsius > targetCelsius + HEATER_HYSTERESIS_CELSIUS;
+      heaterShouldBeOn = !heaterShouldBeOff;
+    }
+    else {
+      // Turn on if current temp is less then setpoint minus hysteresis
+      heaterShouldBeOn = currentCelsius < targetCelsius - HEATER_HYSTERESIS_CELSIUS;
+    }
   }
-  else {
-    // Turn on if current temp is less then setpoint minus hysteresis
-    heaterShouldBeOn = currentCelsius < targetCelsius - HEATER_HYSTERESIS_CELSIUS;
-  }
-  if (apiPostHeaterOn(heaterShouldBeOn)) {
-    isHeaterOn = heaterShouldBeOn;
-    // Actually turn on the relay
-    digitalWrite(HEATER_PIN, isHeaterOn ? HIGH : LOW);
-  }
+  isHeaterOn = heaterShouldBeOn;
+  digitalWrite(HEATER_PIN, isHeaterOn ? HIGH : LOW);
+  updateState(CONTROL_TASK_ID, [isHeaterOn](State &x) {
+    x.isHeaterOn = isHeaterOn;
+  });
   if (isHeaterOn) {
     Serial.println("HEATER ON");
   }
   else {
     Serial.println("HEATER OFF");
   }
+  apiPostHeaterOn(isHeaterOn);
 }
 

@@ -5,9 +5,11 @@
 #include <freertos/queue.h>
 
 struct State {
-  float targetFahrenheit;
+  float targetCelsius;
 
   float thermometerCelsius;
+
+  bool isHeaterOn;
 
   bool knobChanging;
   unsigned long knobChangeMillis;
@@ -24,6 +26,13 @@ public:
     int message = 0;
     auto r = xQueueReceive(queue, &message, millis / portTICK_RATE_MS);
     return r == pdTRUE;
+  }
+  void trigger(int senderTaskId) {
+    if (senderTaskId == taskId)
+      return;
+    unsigned long millis = 10;
+    int message = senderTaskId;
+    auto r = xQueueSend(queue, &message, millis / portTICK_RATE_MS);
   }
 };
 

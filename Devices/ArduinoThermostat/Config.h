@@ -16,6 +16,13 @@
 // TASKS
 
 #define THERMOMETER_TASK_ID 1
-#define KNOB_TASK_ID        2
+#define DISPLAY_TASK_ID     2
+#define CONTROL_TASK_ID     3
+#define KNOB_TASK_ID        4
 
 #define TASK_PRIORITY 2
+
+// Common Functions
+
+float f2c(float f);
+float c2f(float c);

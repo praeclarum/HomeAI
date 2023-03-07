@@ -4,6 +4,9 @@
 #include "State.h"
 #include <DHT.h>
 
+float f2c(float f) { return (f - 32.0f) * 5.0f / 9.0f; }
+float c2f(float c) { return c * 9.0f / 5.0f + 32.0f; }
+
 #define DHT_TYPE DHT22
 
 static DHT dht(DHT_PIN, DHT_TYPE);
