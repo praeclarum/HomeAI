@@ -9,10 +9,6 @@
 static unsigned long lastReadMillis = 0;
 static float lastCelsius = 0;
 
-static bool manuallySetTemp = false;
-static float manuallySetTempC = 0.0f;
-static unsigned long manuallySetTempMillis = 0;
-
 void setup() {
 
   Serial.begin(115200);
@@ -37,10 +33,6 @@ void loop() {
 
   const bool shouldRead = lastReadMillis == 0 || ((nowMillis - lastReadMillis) > 5 * 60 * 1000);
 
-  float newCelsius = 0;
-  // if (thermometerReadCelsius(newCelsius)) {
-  //   lastCelsius = newCelsius;
-  // }
   const State state = readState();
   lastCelsius = state.thermometerCelsius;
 
@@ -76,17 +68,6 @@ void loop() {
       // displayError();
       delay(60000);
       ESP.restart();
-    }
-  }
-
-  if (manuallySetTemp && (millis() - manuallySetTempMillis) > 3 * 1000) {
-    Serial.print("Committing manual setpoint: ");
-    Serial.print(manuallySetTempC);
-    Serial.println("C");
-    manuallySetTemp = false;
-    if (apiPostManualTemperature(manuallySetTempC)) {
-      if (apiPostTargetTemperature(manuallySetTempC)) {
-      }
     }
   }
 

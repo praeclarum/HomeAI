@@ -1,6 +1,7 @@
 #include "Knob.h"
 #include "Config.h"
 #include "State.h"
+#include "Api.h"
 #include <AiEsp32RotaryEncoder.h>
 
 static StateChangedEvent stateChanged(KNOB_TASK_ID);
@@ -47,9 +48,9 @@ static void knobLoop() {
     }
     else {
       const auto targetFahrenheit = knobReadFahrenheit();
-      Serial.print("KNOB ");
-      Serial.print(targetFahrenheit);
-      Serial.println("F");
+      // Serial.print("KNOB ");
+      // Serial.print(targetFahrenheit);
+      // Serial.println("F");
       auto now = millis();
       updateState(KNOB_TASK_ID, [targetFahrenheit, now](State &x) {
         x.knobChanging = true;
@@ -58,12 +59,27 @@ static void knobLoop() {
       });
     }
   }
+  const auto state = readState();
+  if (state.knobChanging && (millis() - state.knobChangeMillis) > 3 * 1000) {
+    float manuallySetTempC = f2c(state.knobSetFahrenheit);
+    updateState(KNOB_TASK_ID, [manuallySetTempC](State &x) {
+      x.knobChanging = false;
+      x.targetCelsius = manuallySetTempC;
+    });
+    Serial.print("Committing manual setpoint: ");
+    Serial.print(manuallySetTempC);
+    Serial.println("C");
+    if (apiPostManualTemperature(manuallySetTempC)) {
+      if (apiPostTargetTemperature(manuallySetTempC)) {
+      }
+    }
+  }
   if (stateChanged.wait(10)) {
     // Serial.println("KNOB SAW STATE CHANGE");
-    const auto state = readState();
-    if (!state.knobChanging) {
+    const auto newState = readState();
+    if (!newState.knobChanging) {
       ignoreNextChange = true;
-      knobUpdateFahrenheit(c2f(state.targetCelsius));
+      knobUpdateFahrenheit(c2f(newState.targetCelsius));
     }
   }
 }
@@ -80,7 +96,7 @@ void knobStart() {
   xTaskCreatePinnedToCore(
     knobTask
     ,  "Knob"
-    ,  4*1024  // Stack size
+    ,  8*1024  // Stack size
     ,  nullptr // Arg
     ,  TASK_PRIORITY  // Priority
     ,  NULL 

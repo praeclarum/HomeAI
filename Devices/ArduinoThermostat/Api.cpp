@@ -77,6 +77,8 @@ void setClock() {
 
 static WiFiMulti WiFiMulti;
 
+static bool connected = false;
+
 void apiSetup() {
 
   WiFi.mode(WIFI_STA);
@@ -90,11 +92,13 @@ void apiSetup() {
   }
   Serial.println(" connected");
 
-  setClock();  
+  setClock();
+  connected = true;
 }
 
 bool apiGetDevices()
 {
+  if (!connected) return false;
   WiFiClientSecure client;//new BearSSL::WiFiClientSecure);
   client.setInsecure();
   HTTPClient https;  
@@ -121,6 +125,7 @@ bool apiGetDevices()
 
 bool apiGetTargetTemperature(float *targetCelsius)
 {
+  if (!connected) return false;
   DynamicJsonDocument doc(1024);
   *targetCelsius = 0;
   bool result = false;
@@ -161,11 +166,12 @@ bool apiGetTargetTemperature(float *targetCelsius)
 
 static bool apiPostValue(int eventType, float value)
 {
+  if (!connected) return false;
   WiFiClientSecure client;//new BearSSL::WiFiClientSecure);
   client.setInsecure();
   HTTPClient https;  
   String url = "https://housebot.azurewebsites.net/api/events";
-  Serial.printf("[HTTPS] POST %s\n", url.c_str()); 
+  Serial.printf("POST EVENT #%d VALUE %g\n", eventType, value); 
   if (https.begin(client, url)) {  // HTTPS
     https.addHeader("accept", "application/json");
     https.addHeader("content-type", "application/json");
@@ -187,11 +193,11 @@ static bool apiPostValue(int eventType, float value)
     // Serial.println(req);
     https.setTimeout(20000);
     int httpCode = https.POST(req);
-    Serial.println("STATUS CODE: " + String(httpCode));
+    // Serial.println("STATUS CODE: " + String(httpCode));
     if (httpCode > 0) {
       if (httpCode == HTTP_CODE_OK) {
         String resp = https.getString();
-        Serial.println(resp);
+        // Serial.println(resp);
         return true;
       }
     } else {

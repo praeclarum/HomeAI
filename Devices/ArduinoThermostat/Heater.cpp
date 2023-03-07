@@ -48,8 +48,8 @@ static void control() {
 
 static void heaterLoop() {
   control();
-  if (stateChanged.wait(5000)) {
-    Serial.println("HEATER SAW STATE CHANGE");
+  if (stateChanged.wait(7000)) {
+    //Serial.println("HEATER SAW STATE CHANGE");
   }
 }
 
@@ -65,7 +65,7 @@ void heaterStart() {
   xTaskCreatePinnedToCore(
     heaterTask
     ,  "Heater"
-    ,  4*1024  // Stack size
+    ,  8*1024  // Stack size
     ,  nullptr // Arg
     ,  TASK_PRIORITY  // Priority
     ,  NULL 
