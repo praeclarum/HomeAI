@@ -15,6 +15,7 @@
 
 // TASKS
 
-#define KNOB_TASK_ID 1
+#define THERMOMETER_TASK_ID 1
+#define KNOB_TASK_ID        2
 
 #define TASK_PRIORITY 2

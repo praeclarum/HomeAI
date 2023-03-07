@@ -7,6 +7,8 @@
 struct State {
   float targetFahrenheit;
 
+  float thermometerCelsius;
+
   bool knobChanging;
   unsigned long knobChangeMillis;
   int knobSetFahrenheit;

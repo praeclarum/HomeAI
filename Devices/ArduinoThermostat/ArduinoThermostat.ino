@@ -29,23 +29,24 @@ void setup() {
   digitalWrite(HEATER_PIN, isHeaterOn ? HIGH : LOW);
 
   displaySetup();
-  thermometerSetup();
+  thermometerStart();
   knobStart();
   apiSetup();
 }
 
 void loop() {
-
   const auto nowMillis = millis();
 
   const bool shouldRead = lastReadMillis == 0 || ((nowMillis - lastReadMillis) > 5 * 60 * 1000);
 
   float newCelsius = 0;
-  if (thermometerReadCelsius(newCelsius)) {
-    lastCelsius = newCelsius;
-  }
+  // if (thermometerReadCelsius(newCelsius)) {
+  //   lastCelsius = newCelsius;
+  // }
+  const State state = readState();
+  lastCelsius = state.thermometerCelsius;
 
-  if (shouldRead) {
+  if (lastCelsius > 1 && shouldRead) {
     Serial.print("READ ");
     Serial.print(lastCelsius);
     Serial.print("C ");
@@ -95,7 +96,7 @@ void loop() {
 
   displayUpdate(lastCelsius, manuallySetTemp ? manuallySetTempC : lastTargetCelsius, manuallySetTemp || isHeaterOn);
 
-  delay(100);
+  vTaskDelay(100 / portTICK_RATE_MS);
 }
 
 void control(float currentCelsius, float targetCelsius)

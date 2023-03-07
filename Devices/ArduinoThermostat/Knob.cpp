@@ -70,7 +70,7 @@ void knobStart() {
   xTaskCreatePinnedToCore(
     knobTask
     ,  "Knob"
-    ,  1024  // Stack size
+    ,  4*1024  // Stack size
     ,  nullptr // Arg
     ,  TASK_PRIORITY  // Priority
     ,  NULL 
