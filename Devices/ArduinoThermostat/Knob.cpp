@@ -69,7 +69,9 @@ static void knobLoop() {
     Serial.print("Committing manual setpoint: ");
     Serial.print(manuallySetTempC);
     Serial.println("C");
+    vTaskDelay(1000 / portTICK_RATE_MS);
     if (apiPostManualTemperature(manuallySetTempC)) {
+      vTaskDelay(1000 / portTICK_RATE_MS);
       if (apiPostTargetTemperature(manuallySetTempC)) {
       }
     }

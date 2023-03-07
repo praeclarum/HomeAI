@@ -19,6 +19,11 @@ void displayUpdate()//float currentC, float targetC, bool showTarget)
   // Serial.println("displayUpdate");
   const State state = readState();
 
+  if (state.networkError) {
+    tm.showNumberHexEx(0xE);
+    return;
+  }
+
   const auto currentC = state.thermometerCelsius;
   const auto targetC = state.targetCelsius;
   auto targetF = int(c2f(targetC) + 0.5f);
@@ -41,11 +46,6 @@ void displayUpdate()//float currentC, float targetC, bool showTarget)
     const uint8_t segments[2] = { 0, 0 };
     tm.setSegments(segments, 2, 0);
   } 
-}
-
-void displayError()
-{
-  tm.showNumberHexEx(0xE);  
 }
 
 static void displayLoop() {

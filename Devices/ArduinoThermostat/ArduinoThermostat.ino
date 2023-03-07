@@ -45,6 +45,7 @@ void loop() {
 
     bool readSucceeded = false;
     if (apiPostTemperature(lastCelsius)) {
+      vTaskDelay(1000 / portTICK_RATE_MS);
       float targetCelsius = 0.0;
       if (apiGetTargetTemperature(&targetCelsius)) {
         updateState(SERVER_TASK_ID, [targetCelsius](State &x) {
@@ -53,6 +54,7 @@ void loop() {
         Serial.print("TARGET ");
         Serial.print(targetCelsius);
         Serial.println("C ");
+        vTaskDelay(1000 / portTICK_RATE_MS);
         if (apiPostTargetTemperature(targetCelsius)) {
           readSucceeded = true;
         }
@@ -63,6 +65,9 @@ void loop() {
       lastReadMillis = millis();
     }
     else {
+      updateState(SERVER_TASK_ID, [](State &x) {
+        x.networkError = true;
+      });
       Serial.println("NETWORK ERROR, RESTARTING AFTER A MINUTE...");
       digitalWrite(HEATER_PIN, LOW);
       // displayError();

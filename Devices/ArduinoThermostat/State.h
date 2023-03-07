@@ -11,6 +11,8 @@ struct State {
 
   bool isHeaterOn;
 
+  bool networkError;
+
   bool knobChanging;
   unsigned long knobChangeMillis;
   int knobSetFahrenheit;
