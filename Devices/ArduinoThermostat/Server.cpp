@@ -209,7 +209,7 @@ static bool apiPostValue(EventType eventType, float value)
       "\"value\":\"" + String(value, 4) + "\""
       "}";
     // Serial.println(req);
-    https.setTimeout(20000);
+    https.setTimeout(30000);
     int httpCode = https.POST(req);
     // Serial.println("STATUS CODE: " + String(httpCode));
     if (httpCode > 0) {
@@ -294,7 +294,7 @@ static void serverLoop()
       }
     }
 
-    if (readSucceeded) {
+    if (readSucceeded || true) {
       lastReadMillis = millis();
     }
     else {
