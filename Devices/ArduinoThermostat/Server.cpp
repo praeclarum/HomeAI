@@ -294,10 +294,9 @@ static void serverLoop()
       }
     }
 
-    if (readSucceeded || true) {
-      lastReadMillis = millis();
-    }
-    else {
+    lastReadMillis = millis();
+
+    if (!readSucceeded) {
       updateState(SERVER_TASK_ID, [](State &x) {
         x.networkError = true;
       });
