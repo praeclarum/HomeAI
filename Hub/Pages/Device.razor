@@ -10,6 +10,18 @@
 
 <DeviceInfoView DeviceInfo="@deviceInfo" />
 
+<div>
+    <p>Key: <input type="password" @bind="@writeKey" /></p>
+    @if (Secrets.CanWriteWithKey(writeKey))
+    {   
+        <button @onclick=DeleteAllEventsCheck>Delete All Events</button>
+    }
+    @if (tryingToDelete)
+    {
+        <p>Are you sure? <button @onclick=DeleteAllEvents>Yes</button> <button @onclick=CancelDelete>No</button></p>
+    }
+</div>
+
 @if (events == null)
 {
     <p><em>Loading Events...</em></p>
@@ -30,6 +42,10 @@ else
 
     DeviceInfo? deviceInfo = null;
 
+    bool tryingToDelete = false;
+
+    string writeKey = "";
+
     protected override async Task OnInitializedAsync()
     {
         var deviceId = Guid.Parse(Id);
@@ -43,5 +59,22 @@ else
         events = await db.GetEventsForDeviceAsync(Guid.Parse(Id), 100);
         StateHasChanged();
     }
-}
 
+    async Task DeleteAllEventsCheck()
+    {
+        tryingToDelete = true;
+        StateHasChanged();
+    }
+
+    async Task DeleteAllEvents()
+    {
+        await db.DeleteAllEventsForDeviceAsync(Guid.Parse(Id));
+        tryingToDelete = false;
+        await Refresh();
+    }
+
+    void CancelDelete()
+    {
+        tryingToDelete = false;
+    }
+}

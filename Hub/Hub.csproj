@@ -10,7 +10,7 @@
     <PackageReference Include="Microsoft.Data.Analysis" Version="0.20.0" />
     <PackageReference Include="Microsoft.ML" Version="2.0.0" />
     <PackageReference Include="Microsoft.ML.FastTree" Version="2.0.0" />
-    <PackageReference Include="sqlite-net-pcl" Version="1.8.116" />
+    <PackageReference Include="sqlite-net-pcl" Version="1.9.141-beta" />
   </ItemGroup>
 
   <ItemGroup>

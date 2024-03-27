@@ -90,6 +90,13 @@ public class HomeDatabase
             .ToArrayAsync();
     }
 
+    public Task DeleteAllEventsForDeviceAsync(DeviceId deviceId)
+    {
+        return _database.Table<DataLogEvent>()
+            .Where(x => x.DeviceId == deviceId)
+            .DeleteAsync();
+    }
+
     public async Task<DataLogEvent?> GetThermostatUserSetpointAsync(DeviceId id)
     {
         var e = await _database.Table<DataLogEvent>()
